@@ -5,12 +5,7 @@ import { toast } from "sonner";
 
 type TabType = 'jornada' | 'schedule' | 'results' | 'dashboard';
 
-const MASTER_TEAMS = [
-  'América', 'Guadalajara', 'Cruz Azul', 'Pumas UNAM', 'Tigres UANL',
-  'Monterrey', 'Santos Laguna', 'León', 'Toluca', 'Atlas',
-  'Pachuca', 'Necaxa', 'Puebla', 'Querétaro', 'Mazatlán',
-  'Tijuana', 'San Luis', 'Juárez',
-];
+// Team names are fetched from DB at runtime
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState<TabType>('schedule');
