@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
@@ -12,12 +13,38 @@ const CreateLeaguePage = () => {
     String(Math.floor(1000 + Math.random() * 9000))
   );
   const [showShare, setShowShare] = useState(false);
+  const [createdLeagueId, setCreatedLeagueId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!name.trim()) {
       toast.error('Ingresa un nombre para tu quiniela');
       return;
     }
+    if (joinCode.length !== 4) {
+      toast.error('El código debe tener 4 dígitos');
+      return;
+    }
+
+    setSaving(true);
+    const { data, error } = await supabase
+      .from('leagues')
+      .insert({ name: name.trim(), description: description.trim() || null, join_code: joinCode })
+      .select('id')
+      .single();
+
+    setSaving(false);
+
+    if (error) {
+      if (error.code === '23505') {
+        toast.error('Ese código ya está en uso. Prueba otro.');
+      } else {
+        toast.error('Error al crear la quiniela');
+      }
+      return;
+    }
+
+    setCreatedLeagueId(data.id);
     setShowShare(true);
   };
 
@@ -63,7 +90,7 @@ const CreateLeaguePage = () => {
             </div>
 
             <button
-              onClick={() => navigate('/league/demo')}
+              onClick={() => navigate(`/league/${createdLeagueId}`)}
               className="mt-6 text-sm text-electric-blue font-semibold hover:underline"
             >
               Ir a mi quiniela →
@@ -117,9 +144,10 @@ const CreateLeaguePage = () => {
 
           <button
             onClick={handleCreate}
-            className="w-full py-3.5 rounded-lg bg-amber text-navy font-bold text-lg shadow-md hover:brightness-110 active:scale-[0.98] transition-all mt-2"
+            disabled={saving}
+            className="w-full py-3.5 rounded-lg bg-amber text-navy font-bold text-lg shadow-md hover:brightness-110 active:scale-[0.98] transition-all mt-2 disabled:opacity-50"
           >
-            Crear quiniela
+            {saving ? 'Creando...' : 'Crear quiniela'}
           </button>
         </div>
       </main>
