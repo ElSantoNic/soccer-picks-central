@@ -80,16 +80,6 @@ export const completedMatches: (Match & { userPick: '1' | 'X' | '2' | null; isCo
   { match_id: 'c9', home_team: 'Juárez', away_team: 'San Luis', kickoff_utc: '', home_score: 2, away_score: 2, result_1x2: 'X', userPick: '1', isCorrect: false },
 ];
 
-export const leagueMembers: LeagueMember[] = [
-  { user_id: 'u1', display_name: 'Carlos', avatar_emoji: '🦅', points_jornada: 7, points_total: 52, badges: ['⚽', '🔥'] },
-  { user_id: 'u2', display_name: 'Ana', avatar_emoji: '🌮', points_jornada: 6, points_total: 48, badges: ['⚽'] },
-  { user_id: 'u3', display_name: 'Roberto', avatar_emoji: '⚽', points_jornada: 8, points_total: 45, badges: ['⚽', '⭐', '🔥'] },
-  { user_id: 'u4', display_name: 'María', avatar_emoji: '🎉', points_jornada: 5, points_total: 43, badges: [] },
-  { user_id: 'u5', display_name: 'Juan', avatar_emoji: '🏆', points_jornada: 4, points_total: 39, badges: ['⚽'] },
-  { user_id: 'u6', display_name: 'Sofía', avatar_emoji: '💃', points_jornada: 6, points_total: 37, badges: ['🔥'] },
-  { user_id: 'u7', display_name: 'Pedro', avatar_emoji: '🎸', points_jornada: 3, points_total: 35, badges: [] },
-  { user_id: 'u8', display_name: 'Lupita', avatar_emoji: '🌺', points_jornada: 5, points_total: 31, badges: ['⚽'] },
-];
 
 export const BADGE_DEFINITIONS = [
   { type: 'debut', emoji: '⚽', name: 'Debut Quinielero', description: 'Hiciste tus primeros picks' },
