@@ -15,14 +15,6 @@ export interface Jornada {
   status: 'open' | 'locked' | 'complete';
 }
 
-export interface LeagueMember {
-  user_id: string;
-  display_name: string;
-  avatar_emoji: string;
-  points_jornada: number;
-  points_total: number;
-  badges: string[];
-}
 
 export const TEAM_COLORS: Record<string, string> = {
   'América': '#FFD700',
