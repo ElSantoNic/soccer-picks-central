@@ -424,7 +424,7 @@ const DashboardPanel = () => {
       });
       setLoading(false);
     })();
-  });
+  }, []);
 
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
 
