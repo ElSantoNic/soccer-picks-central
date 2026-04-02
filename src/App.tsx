@@ -7,6 +7,7 @@ import PicksPage from "./pages/PicksPage";
 import ResultsPage from "./pages/ResultsPage";
 import CreateLeaguePage from "./pages/CreateLeaguePage";
 import LeaguePage from "./pages/LeaguePage";
+import LeaguesListPage from "./pages/LeaguesListPage";
 import ProfilePage from "./pages/ProfilePage";
 import AboutPage from "./pages/AboutPage";
 import AdminPage from "./pages/AdminPage";
