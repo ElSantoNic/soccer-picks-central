@@ -71,7 +71,7 @@ const JornadaManager = () => {
     setLoading(false);
   }, []);
 
-  useState(() => { fetchJornadas(); });
+  useEffect(() => { fetchJornadas(); }, [fetchJornadas]);
 
   const createJornada = async () => {
     if (!newNumber) return;
