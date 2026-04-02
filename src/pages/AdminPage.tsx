@@ -410,7 +410,7 @@ const DashboardPanel = () => {
   const [stats, setStats] = useState({ jornadas: 0, matches: 0, teams: 0 });
   const [loading, setLoading] = useState(true);
 
-  useState(() => {
+  useEffect(() => {
     (async () => {
       const [j, m, t] = await Promise.all([
         supabase.from('jornadas').select('id', { count: 'exact', head: true }),
