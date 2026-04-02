@@ -14,7 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      jornadas: {
+        Row: {
+          created_at: string
+          id: string
+          jornada_number: number
+          season: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          jornada_number: number
+          season?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          jornada_number?: number
+          season?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      matches: {
+        Row: {
+          away_score: number | null
+          away_team: string
+          created_at: string
+          home_score: number | null
+          home_team: string
+          id: string
+          jornada_id: string
+          kickoff_utc: string
+          match_id_csv: string | null
+          result_1x2: string | null
+        }
+        Insert: {
+          away_score?: number | null
+          away_team: string
+          created_at?: string
+          home_score?: number | null
+          home_team: string
+          id?: string
+          jornada_id: string
+          kickoff_utc: string
+          match_id_csv?: string | null
+          result_1x2?: string | null
+        }
+        Update: {
+          away_score?: number | null
+          away_team?: string
+          created_at?: string
+          home_score?: number | null
+          home_team?: string
+          id?: string
+          jornada_id?: string
+          kickoff_utc?: string
+          match_id_csv?: string | null
+          result_1x2?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_jornada_id_fkey"
+            columns: ["jornada_id"]
+            isOneToOne: false
+            referencedRelation: "jornadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          short_name: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          short_name: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          short_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

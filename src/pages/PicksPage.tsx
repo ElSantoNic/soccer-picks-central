@@ -1,30 +1,60 @@
-import { useState } from "react";
-import { Match } from "@/lib/mockData";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import MatchCard from "@/components/MatchCard";
-import CsvUpload, { ParsedMatch } from "@/components/CsvUpload";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import type { Match } from "@/lib/mockData";
 
 const PicksPage = () => {
   const [matches, setMatches] = useState<Match[]>([]);
+  const [jornadaNumber, setJornadaNumber] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
   const [picks, setPicks] = useState<Record<string, '1' | 'X' | '2'>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
-  const [jornadaNumber, setJornadaNumber] = useState<number>(1);
 
-  const handleMatchesLoaded = (parsed: ParsedMatch[]) => {
-    const loaded: Match[] = parsed.map(m => ({
-      ...m,
-      home_score: null,
-      away_score: null,
-      result_1x2: null,
-    }));
-    setMatches(loaded);
-    setPicks({});
-    setHasSaved(false);
-    toast.success(`${loaded.length} partidos cargados`);
-  };
+  useEffect(() => {
+    const fetchMatches = async () => {
+      // Get the current open jornada
+      const { data: jornada } = await supabase
+        .from('jornadas')
+        .select('*')
+        .eq('status', 'open')
+        .order('jornada_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!jornada) {
+        setLoading(false);
+        return;
+      }
+
+      setJornadaNumber(jornada.jornada_number);
+
+      const { data: matchData } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('jornada_id', jornada.id)
+        .order('kickoff_utc', { ascending: true });
+
+      const mapped: Match[] = (matchData || []).map(m => ({
+        match_id: m.match_id_csv || m.id,
+        home_team: m.home_team,
+        away_team: m.away_team,
+        kickoff_utc: m.kickoff_utc,
+        home_score: m.home_score,
+        away_score: m.away_score,
+        result_1x2: m.result_1x2 as '1' | 'X' | '2' | null,
+      }));
+
+      setMatches(mapped);
+      setLoading(false);
+    };
+
+    fetchMatches();
+  }, []);
 
   const handlePickChange = (matchId: string, pick: '1' | 'X' | '2') => {
     setPicks(prev => ({ ...prev, [matchId]: pick }));
@@ -36,6 +66,7 @@ const PicksPage = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
+    // TODO: save picks to Supabase once picks table is set up
     await new Promise(r => setTimeout(r, 800));
     setIsSaving(false);
     setHasSaved(true);
@@ -43,6 +74,18 @@ const PicksPage = () => {
   };
 
   const firstFutureMatch = matches.find(m => new Date(m.kickoff_utc) > new Date());
+
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <TopBar />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-electric-blue" />
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-36">
@@ -53,34 +96,16 @@ const PicksPage = () => {
 
       <main className="max-w-lg mx-auto px-4 py-4">
         {matches.length === 0 ? (
-          <div className="mt-8">
-            <h2 className="text-base font-bold mb-4">Cargar calendario de partidos</h2>
-            <div className="mb-4">
-              <label className="text-sm font-medium mb-1 block">Número de Jornada</label>
-              <input
-                type="number"
-                min={1}
-                value={jornadaNumber}
-                onChange={e => setJornadaNumber(Number(e.target.value))}
-                className="w-24 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-            <CsvUpload onMatchesLoaded={handleMatchesLoaded} />
+          <div className="text-center py-16">
+            <p className="text-4xl mb-4">⚽</p>
+            <p className="font-semibold text-lg">No hay jornada activa en este momento.</p>
+            <p className="text-sm text-muted-foreground mt-1">¡Vuelve pronto!</p>
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold">
-                Jornada {jornadaNumber} — Haz tus pronósticos
-              </h2>
-              <button
-                onClick={() => { setMatches([]); setPicks({}); setHasSaved(false); }}
-                className="text-xs text-electric-blue hover:underline"
-              >
-                Cambiar CSV
-              </button>
-            </div>
-
+            <h2 className="text-base font-bold mb-3">
+              Jornada {jornadaNumber} — Haz tus pronósticos
+            </h2>
             <div className="space-y-3">
               {matches.map(match => {
                 const isLocked = new Date(match.kickoff_utc) < new Date();
