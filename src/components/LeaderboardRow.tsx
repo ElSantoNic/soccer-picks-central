@@ -1,8 +1,14 @@
-import { LeagueMember } from "@/lib/mockData";
+interface LeaderboardMember {
+  display_name: string;
+  avatar_emoji: string;
+  points_jornada: number;
+  points_total: number;
+  badges: string[];
+}
 
 interface LeaderboardRowProps {
   rank: number;
-  member: LeagueMember;
+  member: LeaderboardMember;
   isCurrentUser: boolean;
 }
 

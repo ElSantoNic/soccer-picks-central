@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 const tabs = [
   { id: 'picks', label: 'Picks', emoji: '⚽', path: '/picks' },
-  { id: 'league', label: 'Mi Liga', emoji: '🏆', path: '/league/demo' },
+  { id: 'league', label: 'Quinielas', emoji: '🏆', path: '/leagues' },
   { id: 'results', label: 'Resultados', emoji: '📋', path: '/picks/results' },
   { id: 'profile', label: 'Perfil', emoji: '👤', path: '/profile' },
 ] as const;

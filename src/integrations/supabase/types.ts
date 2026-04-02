@@ -38,6 +38,77 @@ export type Database = {
         }
         Relationships: []
       }
+      league_members: {
+        Row: {
+          avatar_emoji: string
+          badges: string[]
+          display_name: string
+          id: string
+          joined_at: string
+          league_id: string
+          points_jornada: number
+          points_total: number
+          user_id: string | null
+        }
+        Insert: {
+          avatar_emoji?: string
+          badges?: string[]
+          display_name: string
+          id?: string
+          joined_at?: string
+          league_id: string
+          points_jornada?: number
+          points_total?: number
+          user_id?: string | null
+        }
+        Update: {
+          avatar_emoji?: string
+          badges?: string[]
+          display_name?: string
+          id?: string
+          joined_at?: string
+          league_id?: string
+          points_jornada?: number
+          points_total?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "league_members_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leagues: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          join_code: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          join_code: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          join_code?: string
+          name?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           away_score: number | null

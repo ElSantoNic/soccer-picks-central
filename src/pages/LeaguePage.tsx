@@ -1,14 +1,72 @@
-import { useState } from "react";
-import { leagueMembers } from "@/lib/mockData";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import LeaderboardRow from "@/components/LeaderboardRow";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 
-const LeaguePage = () => {
-  const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
-  const currentUserId = 'u2'; // Mock current user
+interface LeagueMember {
+  id: string;
+  user_id: string | null;
+  display_name: string;
+  avatar_emoji: string;
+  points_jornada: number;
+  points_total: number;
+  badges: string[];
+}
 
-  const sorted = [...leagueMembers].sort((a, b) => b.points_total - a.points_total);
+interface League {
+  id: string;
+  name: string;
+  join_code: string;
+  description: string | null;
+}
+
+const LeaguePage = () => {
+  const { leagueId } = useParams<{ leagueId: string }>();
+  const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
+  const [league, setLeague] = useState<League | null>(null);
+  const [members, setMembers] = useState<LeagueMember[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!leagueId) return;
+    const fetchData = async () => {
+      const [leagueRes, membersRes] = await Promise.all([
+        supabase.from('leagues').select('*').eq('id', leagueId).single(),
+        supabase.from('league_members').select('*').eq('league_id', leagueId),
+      ]);
+      if (leagueRes.data) setLeague(leagueRes.data);
+      if (membersRes.data) setMembers(membersRes.data as LeagueMember[]);
+      setLoading(false);
+    };
+    fetchData();
+  }, [leagueId]);
+
+  const sorted = [...members].sort((a, b) => b.points_total - a.points_total);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pb-20">
+        <TopBar />
+        <div className="text-center py-20 text-muted-foreground text-sm">Cargando...</div>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  if (!league) {
+    return (
+      <div className="min-h-screen pb-20">
+        <TopBar />
+        <div className="text-center py-20">
+          <p className="text-4xl mb-3">😕</p>
+          <p className="font-semibold">Quiniela no encontrada</p>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-20">
@@ -19,8 +77,8 @@ const LeaguePage = () => {
         <div className="bg-navy text-primary-foreground px-4 py-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold">Quiniela Familia García</h2>
-              <p className="text-xs opacity-60">{leagueMembers.length} miembros · Clausura 2026</p>
+              <h2 className="text-lg font-bold">{league.name}</h2>
+              <p className="text-xs opacity-60">{members.length} miembros · Código: {league.join_code}</p>
             </div>
             <button className="text-xl p-2 hover:bg-white/10 rounded-full transition-colors">📤</button>
           </div>
@@ -44,21 +102,27 @@ const LeaguePage = () => {
         </div>
 
         {/* Content */}
-        {activeTab === 'tabla' ? (
+        {members.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-4xl mb-3">👥</p>
+            <p className="font-semibold mb-1">Sin miembros aún</p>
+            <p className="text-sm text-muted-foreground">Comparte el código para invitar gente</p>
+          </div>
+        ) : activeTab === 'tabla' ? (
           <div className="bg-card">
             {sorted.map((member, i) => (
               <LeaderboardRow
-                key={member.user_id}
+                key={member.id}
                 rank={i + 1}
                 member={member}
-                isCurrentUser={member.user_id === currentUserId}
+                isCurrentUser={false}
               />
             ))}
           </div>
         ) : (
           <div className="p-4 space-y-3">
-            {leagueMembers.map(member => (
-              <div key={member.user_id} className="flex items-center gap-3 bg-card p-3 rounded-lg">
+            {members.map(member => (
+              <div key={member.id} className="flex items-center gap-3 bg-card p-3 rounded-lg">
                 <div className="w-10 h-10 rounded-full bg-soft-gray flex items-center justify-center text-xl">
                   {member.avatar_emoji}
                 </div>
