@@ -9,6 +9,7 @@ import CreateLeaguePage from "./pages/CreateLeaguePage";
 import LeaguePage from "./pages/LeaguePage";
 import ProfilePage from "./pages/ProfilePage";
 import AboutPage from "./pages/AboutPage";
+import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
