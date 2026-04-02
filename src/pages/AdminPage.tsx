@@ -168,6 +168,10 @@ const ScheduleUpload = () => {
     setResult(null);
 
     try {
+      // Fetch valid team names from DB
+      const { data: teamsData } = await supabase.from('teams').select('name');
+      const validTeams = new Set((teamsData || []).map(t => t.name));
+
       const text = await file.text();
       const lines = text.trim().split('\n');
       if (lines.length < 2) throw new Error('CSV must have a header row and at least one data row');
@@ -197,11 +201,11 @@ const ScheduleUpload = () => {
         const matchId = matchIdIdx !== -1 ? cols[matchIdIdx] : `m${i}`;
         const jornadaNum = jornadaIdx !== -1 ? parseInt(cols[jornadaIdx]) : 0;
 
-        if (!MASTER_TEAMS.includes(home)) {
-          errors.push(`Row ${i + 1}: team "${home}" not recognized`);
+        if (!validTeams.has(home)) {
+          errors.push(`Row ${i + 1}: team "${home}" not in DB (check teams table)`);
         }
-        if (!MASTER_TEAMS.includes(away)) {
-          errors.push(`Row ${i + 1}: team "${away}" not recognized`);
+        if (!validTeams.has(away)) {
+          errors.push(`Row ${i + 1}: team "${away}" not in DB (check teams table)`);
         }
 
         const parsedDate = new Date(kickoff);
