@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 
 const LandingPage = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   return (
