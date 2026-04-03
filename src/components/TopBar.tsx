@@ -1,5 +1,6 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TopBarProps {
   jornadaNumber?: number;
@@ -8,6 +9,8 @@ interface TopBarProps {
 
 const TopBar = ({ jornadaNumber = 10, firstKickoffUtc }: TopBarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [countdown, setCountdown] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
 
@@ -39,7 +42,12 @@ const TopBar = ({ jornadaNumber = 10, firstKickoffUtc }: TopBarProps) => {
   return (
     <header className="sticky top-0 z-50 bg-navy text-primary-foreground">
       <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
-        <h1 className="text-lg font-bold tracking-tight">FC Quiniela</h1>
+        <h1
+          className="text-lg font-bold tracking-tight cursor-pointer"
+          onClick={() => navigate('/')}
+        >
+          FC Quiniela
+        </h1>
 
         {isPicksPage && (
           <div className="flex items-center gap-3 text-sm">
@@ -53,13 +61,21 @@ const TopBar = ({ jornadaNumber = 10, firstKickoffUtc }: TopBarProps) => {
         )}
 
         <div className="flex items-center gap-2">
-          <button className="relative p-1.5 rounded-full hover:bg-white/10 transition-colors">
-            <span className="text-lg">🔔</span>
-            <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-amber rounded-full" />
-          </button>
-          <div className="w-8 h-8 rounded-full bg-electric-blue/20 flex items-center justify-center text-sm">
-            🦅
-          </div>
+          {user ? (
+            <button
+              onClick={() => navigate('/profile')}
+              className="w-8 h-8 rounded-full bg-electric-blue/20 flex items-center justify-center text-sm"
+            >
+              {profile?.avatar_emoji || '⚽'}
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/auth')}
+              className="text-xs font-semibold bg-amber text-navy px-3 py-1.5 rounded-lg hover:brightness-110 transition-all"
+            >
+              Entrar
+            </button>
+          )}
         </div>
       </div>
     </header>
