@@ -40,10 +40,10 @@ const LandingPage = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <button
-              onClick={() => navigate('/picks')}
+              onClick={() => navigate(user ? '/picks' : '/auth')}
               className="bg-amber text-navy font-bold py-3.5 px-8 rounded-lg text-lg shadow-lg hover:brightness-110 active:scale-95 transition-all"
             >
-              Hacer mis picks
+              {user ? 'Hacer mis picks' : 'Comenzar'}
             </button>
             <button
               onClick={() => navigate('/league/create')}
