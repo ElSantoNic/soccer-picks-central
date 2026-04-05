@@ -17,14 +17,15 @@ const PicksPage = () => {
 
   useEffect(() => {
     const fetchMatches = async () => {
-      // Get the current open jornada
-      const { data: jornada } = await supabase
+      // Get open jornadas that have at least one match
+      const { data: openJornadas } = await supabase
         .from('jornadas')
-        .select('*')
+        .select('*, matches(id)')
         .eq('status', 'open')
-        .order('jornada_number', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('jornada_number', { ascending: false });
+
+      // Find the first open jornada that actually has matches
+      const jornada = (openJornadas || []).find(j => (j.matches as any[])?.length > 0);
 
       if (!jornada) {
         setLoading(false);

@@ -70,6 +70,15 @@ const JornadaManager = () => {
 
   const createJornada = async () => {
     if (!newNumber) return;
+    // Auto-lock all currently open jornadas
+    const { error: lockError } = await supabase
+      .from('jornadas')
+      .update({ status: 'locked' })
+      .eq('status', 'open');
+    if (lockError) {
+      toast.error('Failed to lock previous jornadas: ' + lockError.message);
+      return;
+    }
     const { error } = await supabase.from('jornadas').insert({
       jornada_number: parseInt(newNumber),
       season: newSeason,
@@ -78,7 +87,7 @@ const JornadaManager = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success(`Jornada ${newNumber} created`);
+      toast.success(`Jornada ${newNumber} created (previous open jornadas locked)`);
       setNewNumber('');
       fetchJornadas();
     }
