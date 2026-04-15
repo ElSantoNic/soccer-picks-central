@@ -30,7 +30,6 @@ const LeaguesListPage = () => {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      // Fetch member counts
       const leaguesWithCounts = await Promise.all(
         data.map(async (league) => {
           const { count } = await supabase
@@ -61,14 +60,14 @@ const LeaguesListPage = () => {
   };
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 bg-background">
       <TopBar />
       <main className="max-w-lg mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">Mis Quinielas</h2>
+          <h2 className="text-xl font-bold text-foreground">Mis Quinielas</h2>
           <button
             onClick={() => navigate('/league/create')}
-            className="bg-amber text-navy font-bold py-2 px-4 rounded-lg text-sm hover:brightness-110 active:scale-95 transition-all"
+            className="bg-primary text-primary-foreground font-bold py-2 px-4 rounded-lg text-sm hover:bg-primary/90 active:scale-95 transition-all"
           >
             + Crear
           </button>
@@ -86,7 +85,7 @@ const LeaguesListPage = () => {
           />
           <button
             onClick={handleJoin}
-            className="bg-electric-blue text-primary-foreground font-semibold py-2.5 px-5 rounded-lg text-sm hover:brightness-110 transition-all"
+            className="bg-primary text-primary-foreground font-semibold py-2.5 px-5 rounded-lg text-sm hover:bg-primary/90 transition-all"
           >
             Unirse
           </button>
@@ -106,7 +105,7 @@ const LeaguesListPage = () => {
               <button
                 key={league.id}
                 onClick={() => navigate(`/league/${league.id}`)}
-                className="w-full bg-card rounded-xl p-4 shadow-sm text-left hover:shadow-md transition-shadow"
+                className="w-full bg-card rounded-xl p-4 border border-border text-left hover:border-primary/30 transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <div>

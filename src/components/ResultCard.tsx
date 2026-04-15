@@ -16,7 +16,7 @@ const ResultCard = ({ homeTeam, awayTeam, homeScore, awayScore, userPick, isCorr
   const awayColor = TEAM_COLORS[awayTeam] || '#666';
 
   return (
-    <div className={`bg-card rounded-lg shadow-sm p-4 border-l-4 ${isCorrect ? 'border-success' : 'border-coral'}`}>
+    <div className={`bg-card rounded-lg p-4 border ${isCorrect ? 'border-l-4 border-success' : 'border-l-4 border-destructive'}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-1">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-primary-foreground" style={{ backgroundColor: homeColor }}>
@@ -43,7 +43,7 @@ const ResultCard = ({ homeTeam, awayTeam, homeScore, awayScore, userPick, isCorr
         <span className="text-xs text-muted-foreground">
           Tu pick: <span className="font-semibold text-foreground">{userPick ? pickLabels[userPick] : '—'}</span>
         </span>
-        <span className={`text-sm font-bold ${isCorrect ? 'text-success' : 'text-coral'}`}>
+        <span className={`text-sm font-bold ${isCorrect ? 'text-success' : 'text-destructive'}`}>
           {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
         </span>
       </div>

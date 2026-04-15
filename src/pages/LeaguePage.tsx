@@ -47,7 +47,7 @@ const LeaguePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen pb-20">
+      <div className="min-h-screen pb-20 bg-background">
         <TopBar />
         <div className="text-center py-20 text-muted-foreground text-sm">Cargando...</div>
         <BottomNav />
@@ -57,7 +57,7 @@ const LeaguePage = () => {
 
   if (!league) {
     return (
-      <div className="min-h-screen pb-20">
+      <div className="min-h-screen pb-20 bg-background">
         <TopBar />
         <div className="text-center py-20">
           <p className="text-4xl mb-3">😕</p>
@@ -69,18 +69,18 @@ const LeaguePage = () => {
   }
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 bg-background">
       <TopBar />
 
       <main className="max-w-lg mx-auto">
         {/* League header */}
-        <div className="bg-navy text-primary-foreground px-4 py-5">
+        <div className="bg-card border-b border-border px-4 py-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold">{league.name}</h2>
-              <p className="text-xs opacity-60">{members.length} miembros · Código: {league.join_code}</p>
+              <h2 className="text-lg font-bold text-foreground">{league.name}</h2>
+              <p className="text-xs text-muted-foreground">{members.length} miembros · Código: {league.join_code}</p>
             </div>
-            <button className="text-xl p-2 hover:bg-white/10 rounded-full transition-colors">📤</button>
+            <button className="text-xl p-2 hover:bg-secondary rounded-full transition-colors">📤</button>
           </div>
         </div>
 
@@ -92,7 +92,7 @@ const LeaguePage = () => {
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-3 text-sm font-semibold transition-colors ${
                 activeTab === tab
-                  ? 'text-electric-blue border-b-2 border-electric-blue'
+                  ? 'text-primary border-b-2 border-primary'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -122,8 +122,8 @@ const LeaguePage = () => {
         ) : (
           <div className="p-4 space-y-3">
             {members.map(member => (
-              <div key={member.id} className="flex items-center gap-3 bg-card p-3 rounded-lg">
-                <div className="w-10 h-10 rounded-full bg-soft-gray flex items-center justify-center text-xl">
+              <div key={member.id} className="flex items-center gap-3 bg-card p-3 rounded-lg border border-border">
+                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xl">
                   {member.avatar_emoji}
                 </div>
                 <div>

@@ -50,7 +50,6 @@ const CreateLeaguePage = () => {
       return;
     }
 
-    // Auto-join the creator as a member
     if (user && data) {
       await supabase.from("league_members").insert({
         league_id: data.id,
@@ -70,15 +69,15 @@ const CreateLeaguePage = () => {
 
   if (showShare) {
     return (
-      <div className="min-h-screen pb-20">
+      <div className="min-h-screen pb-20 bg-background">
         <TopBar />
         <main className="max-w-lg mx-auto px-4 py-6">
-          <div className="bg-card rounded-xl p-6 shadow-sm text-center">
+          <div className="bg-card rounded-xl p-6 border border-border text-center">
             <h2 className="text-xl font-bold mb-1">🎉 ¡Quiniela creada!</h2>
             <p className="text-sm text-muted-foreground mb-6">
               Comparte tu quiniela con familia y amigos
             </p>
-            <div className="bg-soft-gray rounded-lg p-3 mb-6 text-sm font-mono break-all">
+            <div className="bg-secondary rounded-lg p-3 mb-6 text-sm font-mono break-all">
               {inviteUrl}
             </div>
             <div className="space-y-3 mb-6">
@@ -95,7 +94,7 @@ const CreateLeaguePage = () => {
                   navigator.clipboard.writeText(inviteUrl);
                   toast.success("¡Enlace copiado!");
                 }}
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-soft-gray font-semibold hover:bg-muted transition-all"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-secondary border border-border font-semibold hover:bg-muted transition-all"
               >
                 📋 Copiar enlace
               </button>
@@ -106,7 +105,7 @@ const CreateLeaguePage = () => {
             </div>
             <button
               onClick={() => navigate(`/league/${createdLeagueId}`)}
-              className="mt-6 text-sm text-electric-blue font-semibold hover:underline"
+              className="mt-6 text-sm text-primary font-semibold hover:underline"
             >
               Ir a mi quiniela →
             </button>
@@ -118,13 +117,13 @@ const CreateLeaguePage = () => {
   }
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 bg-background">
       <TopBar />
       <main className="max-w-lg mx-auto px-4 py-6">
         <h2 className="text-xl font-bold mb-6">Crear quiniela</h2>
         {!user && (
-          <div className="bg-amber/10 border border-amber/30 rounded-lg p-3 mb-4 text-sm">
-            <button onClick={() => navigate("/auth")} className="text-amber font-semibold underline">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4 text-sm">
+            <button onClick={() => navigate("/auth")} className="text-primary font-semibold underline">
               Inicia sesión
             </button>{" "}
             para que tu quiniela quede vinculada a tu cuenta.
@@ -164,7 +163,7 @@ const CreateLeaguePage = () => {
           <button
             onClick={handleCreate}
             disabled={saving}
-            className="w-full py-3.5 rounded-lg bg-amber text-navy font-bold text-lg shadow-md hover:brightness-110 active:scale-[0.98] transition-all mt-2 disabled:opacity-50"
+            className="w-full py-3.5 rounded-lg bg-primary text-primary-foreground font-bold text-lg hover:bg-primary/90 active:scale-[0.98] transition-all mt-2 disabled:opacity-50"
           >
             {saving ? "Creando..." : "Crear quiniela"}
           </button>

@@ -5,8 +5,6 @@ import { toast } from "sonner";
 
 type TabType = 'jornada' | 'schedule' | 'results' | 'dashboard';
 
-// Team names are fetched from DB at runtime
-
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState<TabType>('schedule');
 
@@ -19,8 +17,8 @@ const AdminPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-navy text-primary-foreground h-14 flex items-center px-4">
-        <h1 className="text-lg font-bold">FC Quiniela — Admin</h1>
+      <header className="bg-card border-b border-border h-14 flex items-center px-4">
+        <h1 className="text-lg font-bold text-foreground">FC Quiniela — Admin</h1>
       </header>
 
       <div className="max-w-3xl mx-auto p-4">
@@ -31,7 +29,7 @@ const AdminPage = () => {
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.key
-                  ? 'border-electric-blue text-electric-blue'
+                  ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -70,7 +68,6 @@ const JornadaManager = () => {
 
   const createJornada = async () => {
     if (!newNumber) return;
-    // Auto-lock all currently open jornadas
     const { error: lockError } = await supabase
       .from('jornadas')
       .update({ status: 'locked' })
@@ -124,7 +121,7 @@ const JornadaManager = () => {
         </div>
         <button
           onClick={createJornada}
-          className="flex items-center gap-1 bg-electric-blue text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:brightness-110"
+          className="flex items-center gap-1 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90"
         >
           <Plus className="w-4 h-4" /> Create
         </button>
@@ -151,9 +148,9 @@ const JornadaManager = () => {
                   <option value="complete">Complete</option>
                 </select>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  j.status === 'open' ? 'bg-green-100 text-green-800' :
-                  j.status === 'locked' ? 'bg-amber-100 text-amber-800' :
-                  'bg-gray-100 text-gray-800'
+                  j.status === 'open' ? 'bg-success/10 text-success' :
+                  j.status === 'locked' ? 'bg-primary/10 text-primary' :
+                  'bg-muted text-muted-foreground'
                 }`}>{j.status}</span>
               </div>
             </div>
@@ -177,7 +174,6 @@ const ScheduleUpload = () => {
     setResult(null);
 
     try {
-      // Fetch valid team names from DB
       const { data: teamsData } = await supabase.from('teams').select('name');
       const validTeams = new Set((teamsData || []).map(t => t.name));
 
@@ -239,7 +235,6 @@ const ScheduleUpload = () => {
         return;
       }
 
-      // Group by jornada_number and ensure jornadas exist
       const jornadaNumbers = [...new Set(rows.map(r => r.jornada_number))];
 
       for (const num of jornadaNumbers) {
@@ -254,7 +249,6 @@ const ScheduleUpload = () => {
         }
       }
 
-      // Get jornada IDs
       const { data: jornadaData } = await supabase
         .from('jornadas')
         .select('id, jornada_number')
@@ -296,20 +290,20 @@ const ScheduleUpload = () => {
       <CSVDropZone onFile={handleFile} isUploading={isUploading} />
 
       {result && (
-        <div className={`mt-4 p-4 rounded-lg border ${result.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+        <div className={`mt-4 p-4 rounded-lg border ${result.success ? 'bg-success/5 border-success/20' : 'bg-destructive/5 border-destructive/20'}`}>
           <div className="flex items-center gap-2 mb-1">
-            {result.success ? <CheckCircle className="w-5 h-5 text-green-600" /> : <AlertCircle className="w-5 h-5 text-red-600" />}
-            <span className={`font-semibold text-sm ${result.success ? 'text-green-800' : 'text-red-800'}`}>{result.summary}</span>
+            {result.success ? <CheckCircle className="w-5 h-5 text-success" /> : <AlertCircle className="w-5 h-5 text-destructive" />}
+            <span className={`font-semibold text-sm ${result.success ? 'text-success' : 'text-destructive'}`}>{result.summary}</span>
           </div>
           {result.errors.length > 0 && (
             <ul className="mt-2 space-y-1">
               {result.errors.map((e, i) => (
-                <li key={i} className="text-xs text-red-700">• {e}</li>
+                <li key={i} className="text-xs text-destructive">• {e}</li>
               ))}
             </ul>
           )}
           {!result.success && (
-            <button onClick={() => setResult(null)} className="mt-3 text-xs font-medium text-electric-blue hover:underline">
+            <button onClick={() => setResult(null)} className="mt-3 text-xs font-medium text-primary hover:underline">
               Upload Another File
             </button>
           )}
@@ -395,15 +389,15 @@ const ResultsUpload = () => {
       </p>
       <CSVDropZone onFile={handleFile} isUploading={isUploading} />
       {result && (
-        <div className={`mt-4 p-4 rounded-lg border ${result.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+        <div className={`mt-4 p-4 rounded-lg border ${result.success ? 'bg-success/5 border-success/20' : 'bg-destructive/5 border-destructive/20'}`}>
           <div className="flex items-center gap-2 mb-1">
-            {result.success ? <CheckCircle className="w-5 h-5 text-green-600" /> : <AlertCircle className="w-5 h-5 text-red-600" />}
-            <span className={`font-semibold text-sm ${result.success ? 'text-green-800' : 'text-red-800'}`}>{result.summary}</span>
+            {result.success ? <CheckCircle className="w-5 h-5 text-success" /> : <AlertCircle className="w-5 h-5 text-destructive" />}
+            <span className={`font-semibold text-sm ${result.success ? 'text-success' : 'text-destructive'}`}>{result.summary}</span>
           </div>
           {result.errors.length > 0 && (
             <ul className="mt-2 space-y-1">
               {result.errors.map((e, i) => (
-                <li key={i} className="text-xs text-red-700">• {e}</li>
+                <li key={i} className="text-xs text-destructive">• {e}</li>
               ))}
             </ul>
           )}
@@ -460,41 +454,44 @@ const DashboardPanel = () => {
 
 // ─── Shared CSV Drop Zone ──────────────────────────────────────────
 const CSVDropZone = ({ onFile, isUploading }: { onFile: (f: File) => void; isUploading: boolean }) => {
+  const [isDragging, setIsDragging] = useState(false);
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file?.name.endsWith('.csv')) onFile(file);
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) onFile(file);
   };
 
   return (
     <div
-      onDragOver={e => e.preventDefault()}
+      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+      onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
-      className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center hover:border-electric-blue/50 hover:bg-electric-blue/5 transition-all"
+      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+        isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+      }`}
     >
       {isUploading ? (
         <div className="flex flex-col items-center gap-2">
-          <Loader2 className="w-10 h-10 animate-spin text-electric-blue" />
-          <p className="text-sm font-medium">Processing...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Processing...</p>
         </div>
       ) : (
-        <>
-          <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-          <p className="text-sm font-semibold mb-1">Drop CSV file here or click to browse</p>
-          <p className="text-xs text-muted-foreground mb-3">.csv files only</p>
-          <label className="inline-block cursor-pointer bg-electric-blue text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:brightness-110">
-            Choose File
-            <input
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={e => {
-                const file = e.target.files?.[0];
-                if (file) onFile(file);
-              }}
-            />
-          </label>
-        </>
+        <label className="cursor-pointer">
+          <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm font-medium">Drop CSV file here or click to browse</p>
+          <p className="text-xs text-muted-foreground mt-1">Supports .csv files</p>
+          <input
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onFile(file);
+            }}
+          />
+        </label>
       )}
     </div>
   );

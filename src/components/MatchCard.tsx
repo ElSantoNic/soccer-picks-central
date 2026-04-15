@@ -14,7 +14,7 @@ const TeamBadge = ({ team }: { team: string }) => {
   return (
     <div className="flex flex-col items-center gap-1 w-24">
       <div
-        className="w-10 h-10 rounded-full border-2 border-white/20 shadow-md flex items-center justify-center text-primary-foreground font-bold text-xs"
+        className="w-10 h-10 rounded-full border-2 border-border shadow-sm flex items-center justify-center text-primary-foreground font-bold text-xs"
         style={{ backgroundColor: color }}
       >
         {team.substring(0, 3).toUpperCase()}
@@ -30,10 +30,10 @@ const MatchCard = ({ match, currentPick, isLocked, onPickChange }: MatchCardProp
   const dateStr = kickoff.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
 
   return (
-    <div className={`bg-card rounded-lg shadow-sm p-4 transition-all ${isLocked ? 'border-l-4 border-coral opacity-75' : 'border border-border'}`}>
+    <div className={`bg-card rounded-lg p-4 transition-all border ${isLocked ? 'border-l-4 border-destructive/50 opacity-75' : 'border-border'}`}>
       {isLocked && (
         <div className="flex items-center gap-1 mb-2">
-          <span className="text-xs font-semibold text-coral">🔒 Cerrado</span>
+          <span className="text-xs font-semibold text-destructive">🔒 Cerrado</span>
         </div>
       )}
 
@@ -57,10 +57,10 @@ const MatchCard = ({ match, currentPick, isLocked, onPickChange }: MatchCardProp
               onClick={() => onPickChange(match.match_id, pick)}
               className={`py-2.5 rounded-md text-sm font-semibold transition-all ${
                 isSelected
-                  ? 'bg-electric-blue text-primary-foreground shadow-md scale-[1.02]'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
                   : isLocked
                     ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                    : 'bg-soft-gray text-foreground hover:bg-muted active:scale-95'
+                    : 'bg-secondary text-foreground hover:bg-muted active:scale-95 border border-border'
               }`}
             >
               {isSelected && '✓ '}{pickLabels[pick]}
