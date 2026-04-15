@@ -40,10 +40,10 @@ const TopBar = ({ jornadaNumber = 10, firstKickoffUtc }: TopBarProps) => {
   if (location.pathname === '/auth') return null;
 
   return (
-    <header className="sticky top-0 z-50 bg-navy text-primary-foreground">
+    <header className="sticky top-0 z-50 bg-card border-b border-border">
       <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
         <h1
-          className="text-lg font-bold tracking-tight cursor-pointer"
+          className="text-lg font-bold tracking-tight cursor-pointer text-foreground"
           onClick={() => navigate('/')}
         >
           FC Quiniela
@@ -51,9 +51,9 @@ const TopBar = ({ jornadaNumber = 10, firstKickoffUtc }: TopBarProps) => {
 
         {isPicksPage && (
           <div className="flex items-center gap-3 text-sm">
-            <span className="opacity-80">Jornada {jornadaNumber}</span>
+            <span className="text-muted-foreground">Jornada {jornadaNumber}</span>
             {countdown && (
-              <span className={`font-mono font-semibold ${isUrgent ? 'text-coral' : 'text-amber'}`}>
+              <span className={`font-mono font-semibold ${isUrgent ? 'text-destructive' : 'text-primary'}`}>
                 {countdown}
               </span>
             )}
@@ -64,14 +64,14 @@ const TopBar = ({ jornadaNumber = 10, firstKickoffUtc }: TopBarProps) => {
           {user ? (
             <button
               onClick={() => navigate('/profile')}
-              className="w-8 h-8 rounded-full bg-electric-blue/20 flex items-center justify-center text-sm"
+              className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm"
             >
               {profile?.avatar_emoji || '⚽'}
             </button>
           ) : (
             <button
               onClick={() => navigate('/auth')}
-              className="text-xs font-semibold bg-amber text-navy px-3 py-1.5 rounded-lg hover:brightness-110 transition-all"
+              className="text-xs font-semibold bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-all"
             >
               Entrar
             </button>
