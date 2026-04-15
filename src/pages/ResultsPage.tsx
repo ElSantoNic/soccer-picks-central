@@ -8,27 +8,27 @@ const ResultsPage = () => {
   const correctCount = completedMatches.filter(m => m.isCorrect).length;
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 bg-background">
       <TopBar />
 
       <main className="max-w-lg mx-auto px-4 py-4">
         {/* Score summary */}
         <motion.div
-          className="bg-navy text-primary-foreground rounded-xl p-6 mb-5 text-center"
+          className="bg-card border border-border rounded-xl p-6 mb-5 text-center"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
         >
-          <p className="text-sm opacity-70 mb-1">Jornada {completedJornada.jornada_number} completada</p>
+          <p className="text-sm text-muted-foreground mb-1">Jornada {completedJornada.jornada_number} completada</p>
           <motion.p
-            className="text-5xl font-bold text-amber"
+            className="text-5xl font-bold text-primary"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.4 }}
           >
             {correctCount}
           </motion.p>
-          <p className="text-sm opacity-70">puntos</p>
+          <p className="text-sm text-muted-foreground">puntos</p>
           <motion.span
             className="inline-block mt-2 text-sm font-semibold text-success bg-success/10 px-3 py-1 rounded-full"
             initial={{ opacity: 0 }}

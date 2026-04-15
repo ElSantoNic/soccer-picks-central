@@ -17,14 +17,12 @@ const PicksPage = () => {
 
   useEffect(() => {
     const fetchMatches = async () => {
-      // Get open jornadas that have at least one match
       const { data: openJornadas } = await supabase
         .from('jornadas')
         .select('*, matches(id)')
         .eq('status', 'open')
         .order('jornada_number', { ascending: false });
 
-      // Find the first open jornada that actually has matches
       const jornada = (openJornadas || []).find(j => (j.matches as any[])?.length > 0);
 
       if (!jornada) {
@@ -67,7 +65,6 @@ const PicksPage = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    // TODO: save picks to Supabase once picks table is set up
     await new Promise(r => setTimeout(r, 800));
     setIsSaving(false);
     setHasSaved(true);
@@ -78,10 +75,10 @@ const PicksPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-background">
         <TopBar />
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-electric-blue" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
         <BottomNav />
       </div>
@@ -89,7 +86,7 @@ const PicksPage = () => {
   }
 
   return (
-    <div className="min-h-screen pb-36">
+    <div className="min-h-screen pb-36 bg-background">
       <TopBar
         jornadaNumber={jornadaNumber}
         firstKickoffUtc={firstFutureMatch?.kickoff_utc}
@@ -131,11 +128,11 @@ const PicksPage = () => {
             <button
               onClick={handleSave}
               disabled={pickedCount === 0 || isSaving}
-              className={`w-full py-4 rounded-lg font-bold text-lg shadow-lg transition-all active:scale-[0.98] ${
+              className={`w-full py-4 rounded-lg font-bold text-lg transition-all active:scale-[0.98] ${
                 hasSaved
                   ? 'bg-success text-primary-foreground'
                   : pickedCount > 0
-                    ? 'bg-amber text-navy hover:brightness-110'
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
                     : 'bg-muted text-muted-foreground cursor-not-allowed'
               }`}
             >

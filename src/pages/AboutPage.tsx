@@ -18,11 +18,11 @@ const AboutPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen">
-      <header className="bg-navy text-primary-foreground">
+    <div className="min-h-screen bg-background">
+      <header className="bg-card border-b border-border">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="text-lg hover:opacity-70">←</button>
-          <h1 className="font-bold text-lg">Acerca de FC Quiniela</h1>
+          <button onClick={() => navigate(-1)} className="text-lg hover:opacity-70 text-foreground">←</button>
+          <h1 className="font-bold text-lg text-foreground">Acerca de FC Quiniela</h1>
         </div>
       </header>
 

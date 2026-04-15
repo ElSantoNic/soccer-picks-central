@@ -69,22 +69,21 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-navy flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-foreground mb-2">FC Quiniela</h1>
-          <p className="text-white/60 text-sm">Inicia sesión para guardar tus picks y competir</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">FC Quiniela</h1>
+          <p className="text-muted-foreground text-sm">Inicia sesión para guardar tus picks y competir</p>
         </div>
 
-        <div className="bg-card rounded-2xl p-6 shadow-lg">
+        <div className="bg-card rounded-2xl p-6 border border-border">
           {step === "input" ? (
             <>
-              {/* Method toggle */}
-              <div className="flex bg-soft-gray rounded-lg overflow-hidden mb-6">
+              <div className="flex bg-secondary rounded-lg overflow-hidden mb-6">
                 <button
                   onClick={() => setMethod("email")}
                   className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
-                    method === "email" ? "bg-electric-blue text-primary-foreground" : "text-muted-foreground"
+                    method === "email" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                   }`}
                 >
                   📧 Correo
@@ -92,7 +91,7 @@ const LoginPage = () => {
                 <button
                   onClick={() => setMethod("phone")}
                   className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
-                    method === "phone" ? "bg-electric-blue text-primary-foreground" : "text-muted-foreground"
+                    method === "phone" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                   }`}
                 >
                   📱 Teléfono
@@ -130,7 +129,7 @@ const LoginPage = () => {
               <button
                 onClick={handleSendOtp}
                 disabled={loading}
-                className="w-full mt-4 py-3 rounded-lg bg-amber text-navy font-bold text-base shadow-md hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50"
+                className="w-full mt-4 py-3 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
               >
                 {loading ? "Enviando..." : "Enviar código"}
               </button>
@@ -165,7 +164,7 @@ const LoginPage = () => {
               <button
                 onClick={handleVerifyOtp}
                 disabled={loading}
-                className="w-full mt-4 py-3 rounded-lg bg-amber text-navy font-bold text-base shadow-md hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50"
+                className="w-full mt-4 py-3 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
               >
                 {loading ? "Verificando..." : "Verificar"}
               </button>
@@ -180,7 +179,7 @@ const LoginPage = () => {
           )}
         </div>
 
-        <p className="text-center text-xs text-white/40 mt-6">
+        <p className="text-center text-xs text-muted-foreground mt-6">
           Sin contraseñas. Solo un código de verificación.
         </p>
       </div>
