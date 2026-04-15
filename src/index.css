@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,52 +6,52 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%; /* Soft Gray #F1F3F5 */
-    --foreground: 225 75% 11%; /* Deep Navy #0B132B */
+    --background: 210 20% 98%; /* #F8F9FA */
+    --foreground: 0 0% 11%; /* #1A1A1B */
 
     --card: 0 0% 100%;
-    --card-foreground: 225 75% 11%;
+    --card-foreground: 0 0% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 225 75% 11%;
+    --popover-foreground: 0 0% 11%;
 
-    --primary: 225 75% 11%; /* Deep Navy #0B132B */
+    --primary: 220 100% 50%; /* #0057FF */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 20% 97%; /* Soft Gray #F1F3F5 */
-    --secondary-foreground: 225 75% 11%;
+    --secondary: 210 20% 98%;
+    --secondary-foreground: 0 0% 11%;
 
-    --muted: 220 14% 92%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%; /* #6B7280 */
 
-    --accent: 210 79% 46%; /* Electric Blue #1C7ED6 */
+    --accent: 220 100% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 74% 70%; /* Coral #FF6B6B */
+    --destructive: 0 74% 70%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 89%;
-    --input: 220 14% 89%;
-    --ring: 210 79% 46%;
+    --border: 220 13% 91%; /* #E5E7EB */
+    --input: 220 13% 91%;
+    --ring: 220 100% 50%;
 
     --radius: 0.75rem;
 
     /* Custom tokens */
-    --navy: 225 75% 11%;
-    --electric-blue: 210 79% 46%;
-    --amber: 37 95% 48%; /* #F59F00 */
-    --coral: 0 100% 71%; /* #FF6B6B */
-    --soft-gray: 220 20% 97%;
+    --navy: 0 0% 11%;
+    --electric-blue: 220 100% 50%;
+    --amber: 37 95% 48%;
+    --coral: 0 100% 71%;
+    --soft-gray: 210 20% 98%;
     --success: 162 82% 40%;
 
-    --sidebar-background: 225 75% 11%;
+    --sidebar-background: 0 0% 11%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 210 79% 46%;
+    --sidebar-primary: 220 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 225 50% 18%;
+    --sidebar-accent: 0 0% 18%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 225 50% 18%;
-    --sidebar-ring: 210 79% 46%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 220 100% 50%;
   }
 }
 
@@ -62,6 +62,6 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
   }
 }
