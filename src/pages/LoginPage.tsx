@@ -3,8 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-type AuthMethod = "email" | "phone";
+type AuthMethod = "email" | "phone" | "password";
 type Step = "input" | "otp";
 
 const LoginPage = () => {
@@ -19,8 +26,37 @@ const LoginPage = () => {
   const [step, setStep] = useState<Step>("input");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Setup-password modal state
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [setupEmail, setSetupEmail] = useState("nick.santana@gmail.com");
+  const [setupPassword, setSetupPassword] = useState("");
+  const [setupSecret, setSetupSecret] = useState("");
+  const [setupLoading, setSetupLoading] = useState(false);
+
+  const handlePasswordLogin = async () => {
+    if (!email.trim() || !password) {
+      toast.error("Ingresa correo y contraseña");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw error;
+      toast.success("¡Bienvenido!");
+      navigate("/picks");
+    } catch (err: any) {
+      toast.error(err.message || "Credenciales incorrectas");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSendOtp = async () => {
     setLoading(true);
@@ -81,6 +117,41 @@ const LoginPage = () => {
     }
   };
 
+  const handleSetupPassword = async () => {
+    if (!setupEmail.trim() || !setupPassword || !setupSecret) {
+      toast.error("Completa todos los campos");
+      return;
+    }
+    if (setupPassword.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+    setSetupLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-set-password", {
+        body: {
+          email: setupEmail.trim(),
+          newPassword: setupPassword,
+          setupSecret: setupSecret,
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      toast.success("¡Contraseña configurada! Inicia sesión.");
+      setMethod("password");
+      setEmail(setupEmail.trim());
+      setPassword(setupPassword);
+      setSetupOpen(false);
+      setSetupSecret("");
+      setSetupPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Error al configurar contraseña");
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
@@ -92,10 +163,10 @@ const LoginPage = () => {
         <div className="bg-card rounded-2xl p-6 border border-border">
           {step === "input" ? (
             <>
-              <div className="flex bg-secondary rounded-lg overflow-hidden mb-6">
+              <div className="grid grid-cols-3 bg-secondary rounded-lg overflow-hidden mb-6">
                 <button
                   onClick={() => setMethod("email")}
-                  className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+                  className={`py-2.5 text-xs font-semibold transition-colors ${
                     method === "email" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                   }`}
                 >
@@ -103,15 +174,23 @@ const LoginPage = () => {
                 </button>
                 <button
                   onClick={() => setMethod("phone")}
-                  className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+                  className={`py-2.5 text-xs font-semibold transition-colors ${
                     method === "phone" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                   }`}
                 >
-                  📱 Teléfono
+                  📱 SMS
+                </button>
+                <button
+                  onClick={() => setMethod("password")}
+                  className={`py-2.5 text-xs font-semibold transition-colors ${
+                    method === "password" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  🔑 Clave
                 </button>
               </div>
 
-              {method === "email" ? (
+              {method === "email" && (
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">Correo electrónico</label>
                   <input
@@ -123,7 +202,9 @@ const LoginPage = () => {
                     onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
                   />
                 </div>
-              ) : (
+              )}
+
+              {method === "phone" && (
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">
                     Número de teléfono (con código de país)
@@ -139,13 +220,54 @@ const LoginPage = () => {
                 </div>
               )}
 
+              {method === "password" && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Correo electrónico</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="tu@correo.com"
+                      className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Contraseña</label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
+                    />
+                  </div>
+                </div>
+              )}
+
               <button
-                onClick={handleSendOtp}
+                onClick={method === "password" ? handlePasswordLogin : handleSendOtp}
                 disabled={loading}
                 className="w-full mt-4 py-3 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
               >
-                {loading ? "Enviando..." : "Enviar código"}
+                {loading
+                  ? method === "password"
+                    ? "Iniciando..."
+                    : "Enviando..."
+                  : method === "password"
+                    ? "Iniciar sesión"
+                    : "Enviar código"}
               </button>
+
+              {method === "password" && (
+                <button
+                  onClick={() => setSetupOpen(true)}
+                  className="w-full mt-3 py-2 text-xs text-primary hover:underline transition-colors"
+                >
+                  ¿Primera vez? Configurar contraseña
+                </button>
+              )}
 
               <button
                 onClick={() => navigate("/picks")}
@@ -196,6 +318,55 @@ const LoginPage = () => {
           Sin contraseñas. Solo un código de verificación.
         </p>
       </div>
+
+      <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configurar contraseña</DialogTitle>
+            <DialogDescription>
+              Solo disponible para el correo autorizado. Necesitas el secret de configuración.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Correo</label>
+              <input
+                type="email"
+                value={setupEmail}
+                onChange={(e) => setSetupEmail(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Nueva contraseña (mín 8)</label>
+              <input
+                type="password"
+                value={setupPassword}
+                onChange={(e) => setSetupPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Setup secret</label>
+              <input
+                type="password"
+                value={setupSecret}
+                onChange={(e) => setSetupSecret(e.target.value)}
+                placeholder="ADMIN_PASSWORD_SETUP_SECRET"
+                className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <button
+              onClick={handleSetupPassword}
+              disabled={setupLoading}
+              className="w-full mt-2 py-3 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {setupLoading ? "Configurando..." : "Configurar contraseña"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
