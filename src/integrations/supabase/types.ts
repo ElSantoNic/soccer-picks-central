@@ -174,6 +174,57 @@ export type Database = {
           },
         ]
       }
+      picks: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean | null
+          jornada_id: string
+          match_id: string
+          pick: string
+          points_awarded: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          jornada_id: string
+          match_id: string
+          pick: string
+          points_awarded?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          jornada_id?: string
+          match_id?: string
+          pick?: string
+          points_awarded?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "picks_jornada_id_fkey"
+            columns: ["jornada_id"]
+            isOneToOne: false
+            referencedRelation: "jornadas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "picks_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_emoji: string

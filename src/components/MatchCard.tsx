@@ -30,13 +30,7 @@ const MatchCard = ({ match, currentPick, isLocked, onPickChange }: MatchCardProp
   const dateStr = kickoff.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
 
   return (
-    <div className={`bg-card rounded-lg p-4 transition-all border ${isLocked ? 'border-l-4 border-destructive/50 opacity-75' : 'border-border'}`}>
-      {isLocked && (
-        <div className="flex items-center gap-1 mb-2">
-          <span className="text-xs font-semibold text-destructive">🔒 Cerrado</span>
-        </div>
-      )}
-
+    <div className={`bg-card rounded-lg p-4 transition-all border border-border ${isLocked ? 'opacity-75' : ''}`}>
       <div className="flex items-center justify-between mb-3">
         <TeamBadge team={match.home_team} />
         <div className="text-center">
