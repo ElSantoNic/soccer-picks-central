@@ -1,13 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 type AuthMethod = "email" | "phone";
 type Step = "input" | "otp";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { session } = useAuth();
+
+  useEffect(() => {
+    if (session) navigate("/picks", { replace: true });
+  }, [session, navigate]);
+
   const [method, setMethod] = useState<AuthMethod>("email");
   const [step, setStep] = useState<Step>("input");
   const [email, setEmail] = useState("");
@@ -23,7 +30,13 @@ const LoginPage = () => {
           toast.error("Ingresa tu correo electrónico");
           return;
         }
-        const { error } = await supabase.auth.signInWithOtp({ email: email.trim() });
+        const { error } = await supabase.auth.signInWithOtp({
+          email: email.trim(),
+          options: {
+            shouldCreateUser: true,
+            emailRedirectTo: `${window.location.origin}/picks`,
+          },
+        });
         if (error) throw error;
         toast.success("¡Código enviado a tu correo!");
       } else {
