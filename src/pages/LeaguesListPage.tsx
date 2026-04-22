@@ -125,9 +125,10 @@ const LeaguesListPage = () => {
           />
           <button
             onClick={handleJoin}
-            className="bg-primary text-primary-foreground font-semibold py-2.5 px-5 rounded-lg text-sm hover:bg-primary/90 transition-all"
+            disabled={joining}
+            className="bg-primary text-primary-foreground font-semibold py-2.5 px-5 rounded-lg text-sm hover:bg-primary/90 transition-all disabled:opacity-60"
           >
-            Unirse
+            {joining ? '...' : 'Unirse'}
           </button>
         </div>
 
