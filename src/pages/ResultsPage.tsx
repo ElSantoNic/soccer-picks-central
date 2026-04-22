@@ -8,6 +8,8 @@ import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
 
 interface MatchRow {
   id: string;
@@ -29,6 +31,7 @@ interface PickRow {
 const ResultsPage = () => {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [jornadaNumber, setJornadaNumber] = useState<number | null>(null);
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [picksByMatch, setPicksByMatch] = useState<Record<string, PickRow>>({});
@@ -38,23 +41,43 @@ const ResultsPage = () => {
 
     const load = async () => {
       setLoading(true);
+      setError(null);
 
-      // 1. Find the latest completed jornada: walk jornadas by jornada_number desc
-      // and return the first one that has at least one scored match.
-      const { data: jornadaRows } = await supabase
+      // 1. Find the latest completed jornada
+      const { data: jornadaRows, error: jornadaErr } = await supabase
         .from("jornadas")
         .select("id, jornada_number")
         .order("jornada_number", { ascending: false });
+
+      if (jornadaErr) {
+        console.error("Error fetching jornadas:", jornadaErr);
+        toast.error("No pudimos cargar las jornadas", {
+          description: jornadaErr.message,
+        });
+        setError("No pudimos cargar las jornadas. Inténtalo de nuevo.");
+        setLoading(false);
+        return;
+      }
 
       let bestJornadaId: string | null = null;
       let bestNumber: number | null = null;
 
       for (const j of jornadaRows ?? []) {
-        const { count } = await supabase
+        const { count, error: countErr } = await supabase
           .from("matches")
           .select("id", { count: "exact", head: true })
           .eq("jornada_id", j.id)
           .not("result_1x2", "is", null);
+
+        if (countErr) {
+          console.error("Error checking jornada results:", countErr);
+          toast.error("Error al buscar la última jornada completada", {
+            description: countErr.message,
+          });
+          setError("Error al buscar la última jornada completada.");
+          setLoading(false);
+          return;
+        }
 
         if ((count ?? 0) > 0) {
           bestJornadaId = j.id;
@@ -72,19 +95,29 @@ const ResultsPage = () => {
       }
 
       // 2. Fetch all scored matches for that jornada
-      const { data: matchRows } = await supabase
+      const { data: matchRows, error: matchErr } = await supabase
         .from("matches")
         .select("id, home_team, away_team, home_score, away_score, result_1x2, kickoff_utc")
         .eq("jornada_id", bestJornadaId)
         .not("result_1x2", "is", null)
         .order("kickoff_utc");
 
+      if (matchErr) {
+        console.error("Error fetching matches:", matchErr);
+        toast.error("No pudimos cargar los partidos", {
+          description: matchErr.message,
+        });
+        setError("No pudimos cargar los partidos de la jornada.");
+        setLoading(false);
+        return;
+      }
+
       const finalMatches = (matchRows ?? []) as MatchRow[];
 
       // 3. Fetch user picks for those matches (RLS scopes to current user)
       let pickMap: Record<string, PickRow> = {};
       if (user && finalMatches.length > 0) {
-        const { data: pickRows } = await supabase
+        const { data: pickRows, error: pickErr } = await supabase
           .from("picks")
           .select("match_id, pick, is_correct, points_awarded")
           .eq("jornada_id", bestJornadaId)
@@ -92,7 +125,16 @@ const ResultsPage = () => {
             "match_id",
             finalMatches.map((m) => m.id),
           );
-        pickMap = Object.fromEntries(((pickRows ?? []) as PickRow[]).map((p) => [p.match_id, p]));
+
+        if (pickErr) {
+          console.error("Error fetching picks:", pickErr);
+          toast.error("No pudimos cargar tus picks", {
+            description: pickErr.message,
+          });
+          // Non-fatal: still show match results without pick overlay
+        } else {
+          pickMap = Object.fromEntries(((pickRows ?? []) as PickRow[]).map((p) => [p.match_id, p]));
+        }
       }
 
       setJornadaNumber(bestNumber);
@@ -121,6 +163,13 @@ const ResultsPage = () => {
               ))}
             </div>
           </>
+        ) : error ? (
+          <div className="bg-card border border-destructive/40 rounded-xl p-6 text-center">
+            <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-2" />
+            <p className="text-base font-semibold mb-2">Algo salió mal</p>
+            <p className="text-sm text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>Reintentar</Button>
+          </div>
         ) : !user ? (
           <div className="bg-card border border-border rounded-xl p-6 text-center">
             <p className="text-base font-semibold mb-2">Inicia sesión para ver tus resultados</p>
