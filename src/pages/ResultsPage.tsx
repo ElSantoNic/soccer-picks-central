@@ -39,32 +39,36 @@ const ResultsPage = () => {
     const load = async () => {
       setLoading(true);
 
-      // 1. Find most recent jornada that has at least one scored match
-      const { data: scoredMatches } = await supabase
-        .from("matches")
-        .select("jornada_id, jornadas!inner(jornada_number)")
-        .not("result_1x2", "is", null)
-        .order("jornada_id");
+      // 1. Find the latest completed jornada: walk jornadas by jornada_number desc
+      // and return the first one that has at least one scored match.
+      const { data: jornadaRows } = await supabase
+        .from("jornadas")
+        .select("id, jornada_number")
+        .order("jornada_number", { ascending: false });
 
-      if (!scoredMatches || scoredMatches.length === 0) {
+      let bestJornadaId: string | null = null;
+      let bestNumber: number | null = null;
+
+      for (const j of jornadaRows ?? []) {
+        const { count } = await supabase
+          .from("matches")
+          .select("id", { count: "exact", head: true })
+          .eq("jornada_id", j.id)
+          .not("result_1x2", "is", null);
+
+        if ((count ?? 0) > 0) {
+          bestJornadaId = j.id;
+          bestNumber = j.jornada_number;
+          break;
+        }
+      }
+
+      if (!bestJornadaId || bestNumber === null) {
         setJornadaNumber(null);
         setMatches([]);
         setPicksByMatch({});
         setLoading(false);
         return;
-      }
-
-      // Pick the jornada with the highest jornada_number
-      let bestJornadaId = scoredMatches[0].jornada_id;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let bestNumber = (scoredMatches[0] as any).jornadas.jornada_number as number;
-      for (const row of scoredMatches) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const n = (row as any).jornadas.jornada_number as number;
-        if (n > bestNumber) {
-          bestNumber = n;
-          bestJornadaId = row.jornada_id;
-        }
       }
 
       // 2. Fetch all scored matches for that jornada
