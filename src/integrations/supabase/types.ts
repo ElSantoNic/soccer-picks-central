@@ -284,6 +284,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_league_by_code: {
+        Args: { _code: string }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {

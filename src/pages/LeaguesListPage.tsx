@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 
@@ -15,9 +17,11 @@ interface League {
 
 const LeaguesListPage = () => {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [leagues, setLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(true);
   const [joinCode, setJoinCode] = useState('');
+  const [joining, setJoining] = useState(false);
 
   useEffect(() => {
     fetchLeagues();
@@ -45,17 +49,53 @@ const LeaguesListPage = () => {
   };
 
   const handleJoin = async () => {
-    if (!joinCode.trim()) return;
-    const { data } = await supabase
-      .from('leagues')
-      .select('id')
-      .eq('join_code', joinCode.trim())
-      .single();
+    const code = joinCode.trim();
+    if (!code) return;
 
-    if (data) {
-      navigate(`/league/${data.id}`);
-    } else {
-      alert('Código no encontrado');
+    if (!user) {
+      toast.error("Inicia sesión para unirte a una quiniela");
+      navigate('/auth');
+      return;
+    }
+
+    setJoining(true);
+    try {
+      const { data: found, error: rpcErr } = await supabase
+        .rpc('find_league_by_code', { _code: code });
+
+      if (rpcErr) {
+        console.error('find_league_by_code error', rpcErr);
+        toast.error("No se pudo buscar la quiniela. Intenta de nuevo.");
+        return;
+      }
+
+      const league = Array.isArray(found) ? found[0] : found;
+      if (!league) {
+        toast.error("Código no encontrado");
+        return;
+      }
+
+      const { error: insertErr } = await supabase
+        .from('league_members')
+        .insert({
+          league_id: league.id,
+          user_id: user.id,
+          display_name: profile?.display_name || user.email || 'Jugador',
+          avatar_emoji: profile?.avatar_emoji || '⚽',
+        });
+
+      // Ignore unique-violation (already a member); surface other errors.
+      if (insertErr && insertErr.code !== '23505') {
+        console.error('join league insert error', insertErr);
+        toast.error("No se pudo unir a la quiniela. Intenta de nuevo.");
+        return;
+      }
+
+      toast.success(`¡Te uniste a ${league.name}!`);
+      setJoinCode('');
+      navigate(`/league/${league.id}`);
+    } finally {
+      setJoining(false);
     }
   };
 
@@ -85,9 +125,10 @@ const LeaguesListPage = () => {
           />
           <button
             onClick={handleJoin}
-            className="bg-primary text-primary-foreground font-semibold py-2.5 px-5 rounded-lg text-sm hover:bg-primary/90 transition-all"
+            disabled={joining}
+            className="bg-primary text-primary-foreground font-semibold py-2.5 px-5 rounded-lg text-sm hover:bg-primary/90 transition-all disabled:opacity-60"
           >
-            Unirse
+            {joining ? '...' : 'Unirse'}
           </button>
         </div>
 
