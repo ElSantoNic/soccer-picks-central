@@ -5,6 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface League {
   id: string;
@@ -22,6 +30,8 @@ const LeaguesListPage = () => {
   const [loading, setLoading] = useState(true);
   const [joinCode, setJoinCode] = useState('');
   const [joining, setJoining] = useState(false);
+  const [joinedLeague, setJoinedLeague] = useState<{ id: string; name: string; join_code: string } | null>(null);
+  const [alreadyMember, setAlreadyMember] = useState(false);
 
   useEffect(() => {
     fetchLeagues();
@@ -85,15 +95,17 @@ const LeaguesListPage = () => {
         });
 
       // Ignore unique-violation (already a member); surface other errors.
-      if (insertErr && insertErr.code !== '23505') {
+      const isAlreadyMember = !!insertErr && insertErr.code === '23505';
+      if (insertErr && !isAlreadyMember) {
         console.error('join league insert error', insertErr);
         toast.error("No se pudo unir a la quiniela. Intenta de nuevo.");
         return;
       }
 
-      toast.success(`¡Te uniste a ${league.name}!`);
       setJoinCode('');
-      navigate(`/league/${league.id}`);
+      setAlreadyMember(isAlreadyMember);
+      setJoinedLeague({ id: league.id, name: league.name, join_code: league.join_code });
+      fetchLeagues();
     } finally {
       setJoining(false);
     }
@@ -163,6 +175,61 @@ const LeaguesListPage = () => {
         )}
       </main>
       <BottomNav />
+
+      <Dialog
+        open={!!joinedLeague}
+        onOpenChange={(open) => {
+          if (!open) setJoinedLeague(null);
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <div className="text-5xl text-center mb-2">🎉</div>
+            <DialogTitle className="text-center">
+              {alreadyMember ? "Ya eres miembro" : "¡Te uniste a la quiniela!"}
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {alreadyMember
+                ? "Ya formabas parte de esta quiniela."
+                : "Bienvenido. Aquí están los detalles:"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {joinedLeague && (
+            <div className="bg-muted/50 rounded-xl p-4 my-2 text-center">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                Quiniela
+              </p>
+              <p className="font-bold text-lg text-foreground mb-3">
+                {joinedLeague.name}
+              </p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                Código de acceso
+              </p>
+              <p className="font-mono text-2xl tracking-widest text-primary font-bold">
+                {joinedLeague.join_code}
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="flex-col sm:flex-col gap-2">
+            <button
+              onClick={() => {
+                if (joinedLeague) navigate(`/league/${joinedLeague.id}`);
+              }}
+              className="w-full bg-primary text-primary-foreground font-semibold py-2.5 px-4 rounded-lg text-sm hover:bg-primary/90 transition-all"
+            >
+              Ir a la quiniela
+            </button>
+            <button
+              onClick={() => setJoinedLeague(null)}
+              className="w-full bg-card border border-border text-foreground font-medium py-2.5 px-4 rounded-lg text-sm hover:bg-muted transition-all"
+            >
+              Cerrar
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
