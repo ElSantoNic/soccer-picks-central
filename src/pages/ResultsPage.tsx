@@ -31,6 +31,7 @@ interface PickRow {
 const ResultsPage = () => {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [jornadaNumber, setJornadaNumber] = useState<number | null>(null);
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [picksByMatch, setPicksByMatch] = useState<Record<string, PickRow>>({});
