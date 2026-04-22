@@ -284,8 +284,22 @@ const ScheduleUpload = () => {
     <div>
       <h2 className="text-lg font-bold mb-2">Schedule Upload</h2>
       <p className="text-sm text-muted-foreground mb-4">
-        Upload <code>match_schedule.csv</code> with columns: <code>match_id, jornada_number, home_team, away_team, kickoff_utc</code>
+        Upload <code>match_schedule.csv</code> with the columns shown below.
       </p>
+
+      <div className="mb-4 p-4 rounded-lg border border-border bg-muted/30">
+        <p className="text-xs font-semibold text-foreground mb-2">Required columns</p>
+        <code className="block text-xs text-foreground mb-3">match_id, jornada_number, home_team, away_team, kickoff_utc</code>
+        <p className="text-xs font-semibold text-foreground mb-1">Example</p>
+        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto">{`match_id,jornada_number,home_team,away_team,kickoff_utc
+MX-2026-J15-01,15,América,Chivas,2026-04-21T02:00:00Z
+MX-2026-J15-02,15,Cruz Azul,Pumas,2026-04-21T04:00:00Z`}</pre>
+        <ul className="mt-3 text-xs text-muted-foreground space-y-1">
+          <li>• <code>home_team</code> / <code>away_team</code> must match names in the <code>teams</code> table exactly</li>
+          <li>• <code>kickoff_utc</code> in ISO 8601 UTC format</li>
+          <li>• <code>match_id</code> is the stable ID used later in Results Upload (case-sensitive)</li>
+        </ul>
+      </div>
 
       <CSVDropZone onFile={handleFile} isUploading={isUploading} />
 
@@ -385,8 +399,24 @@ const ResultsUpload = () => {
     <div>
       <h2 className="text-lg font-bold mb-2">Results Upload</h2>
       <p className="text-sm text-muted-foreground mb-4">
-        Upload <code>match_results.csv</code> with columns: <code>match_id, home_score, away_score</code>
+        Upload <code>match_results.csv</code> with the columns shown below.
       </p>
+
+      <div className="mb-4 p-4 rounded-lg border border-border bg-muted/30">
+        <p className="text-xs font-semibold text-foreground mb-2">Required columns</p>
+        <code className="block text-xs text-foreground mb-3">match_id, home_score, away_score</code>
+        <p className="text-xs font-semibold text-foreground mb-1">Example</p>
+        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto">{`match_id,home_score,away_score
+MX-2026-J15-01,2,1
+MX-2026-J15-02,0,0
+MX-2026-J15-03,1,3`}</pre>
+        <ul className="mt-3 text-xs text-muted-foreground space-y-1">
+          <li>• <code>match_id</code> must match the IDs from your Schedule Upload (case-sensitive)</li>
+          <li>• Scores are whole numbers; ties are allowed</li>
+          <li>• Result (1 / X / 2) is computed automatically from the scores</li>
+        </ul>
+      </div>
+
       <CSVDropZone onFile={handleFile} isUploading={isUploading} />
       {result && (
         <div className={`mt-4 p-4 rounded-lg border ${result.success ? 'bg-success/5 border-success/20' : 'bg-destructive/5 border-destructive/20'}`}>
