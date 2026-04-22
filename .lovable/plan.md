@@ -1,37 +1,42 @@
 
 
-## Add CSV format hint to Results Upload + upload your file
+## Wire the Resultados page to live Supabase data
 
-### What you'll see in the Admin → Results Upload tab
+### What's wrong
 
-A clear, scannable format card above the drop zone showing exactly what the CSV needs to look like:
+`src/pages/ResultsPage.tsx` is still rendering hard-coded mock arrays from `src/lib/mockData.ts` (`completedJornada` = J9, `completedMatches` = made-up rows). It never queries Supabase, so your real J15 results — which are correctly stored and scored in the DB — can't appear.
 
-```text
-Required columns:  match_id, home_score, away_score
+### Fix
 
-Example:
-  match_id,home_score,away_score
-  MX-2026-J15-01,2,1
-  MX-2026-J15-02,0,0
-  MX-2026-J15-03,1,3
+Rewrite `ResultsPage.tsx` to load real data from Supabase for the signed-in user.
 
-Notes:
-  • match_id must match the IDs from your Schedule Upload (case-sensitive)
-  • Scores are whole numbers; ties are allowed
-  • Result (1 / X / 2) is computed automatically
-```
+**Data to fetch (single page load):**
 
-Same pattern (smaller info card) will be added to **Schedule Upload** for consistency, showing its expected columns.
+1. Most recent **completed jornada** = the jornada with the highest `jornada_number` that has at least one match where `result_1x2 IS NOT NULL`. (Using "has results" rather than `status` so it works regardless of whether the jornada is still marked `open`.)
+2. All `matches` for that jornada, ordered by `kickoff_utc`.
+3. The user's `picks` for those matches (`auth.uid()` filter, RLS already enforces this).
 
-### After the UI change
+**What the page renders:**
 
-I'll upload your `match_results.csv` (the file you just attached) via the Results Upload flow and report back:
-- rows updated
-- any row-level errors
-- confirmation that picks were scored and `league_members` totals updated
+- Header card: "Jornada {N} completada" + total points for the user this jornada (sum of `points_awarded` across their picks for that jornada) + "+X pts esta jornada" pill.
+- One `ResultCard` per match, joining each match to the user's pick:
+  - `homeTeam`, `awayTeam`, `homeScore`, `awayScore` from `matches`
+  - `userPick` from the user's `picks` row (or `null` if they didn't pick)
+  - `isCorrect` from `picks.is_correct` (or `false` if no pick)
+- Matches without a result yet are excluded (so partially-completed jornadas only show finished games).
+
+**States:**
+
+- Loading → skeleton placeholders for the summary card + 9 rows.
+- Not signed in → friendly prompt with a button to `/auth` (no picks to show otherwise).
+- No completed jornada in DB → empty state: "Aún no hay resultados para mostrar."
+
+### Out of scope (not changing now)
+
+- `src/lib/mockData.ts` stays for other pages still using it (`PicksPage`, etc.). We only stop importing `completedJornada` / `completedMatches` from `ResultsPage`.
+- No DB schema changes. RLS on `picks` already restricts to the signed-in user, which is exactly what we want.
 
 ### Files touched
 
-- `src/pages/AdminPage.tsx` — add a format-hint card inside `ResultsUpload` (and a matching one in `ScheduleUpload`), no logic changes.
-- Then run the results upload using your provided CSV.
+- `src/pages/ResultsPage.tsx` — replace mock imports with a `useEffect` + Supabase queries; add loading / empty / signed-out states. No other files change.
 
