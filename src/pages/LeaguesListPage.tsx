@@ -95,15 +95,17 @@ const LeaguesListPage = () => {
         });
 
       // Ignore unique-violation (already a member); surface other errors.
-      if (insertErr && insertErr.code !== '23505') {
+      const isAlreadyMember = !!insertErr && insertErr.code === '23505';
+      if (insertErr && !isAlreadyMember) {
         console.error('join league insert error', insertErr);
         toast.error("No se pudo unir a la quiniela. Intenta de nuevo.");
         return;
       }
 
-      toast.success(`¡Te uniste a ${league.name}!`);
       setJoinCode('');
-      navigate(`/league/${league.id}`);
+      setAlreadyMember(isAlreadyMember);
+      setJoinedLeague({ id: league.id, name: league.name, join_code: league.join_code });
+      fetchLeagues();
     } finally {
       setJoining(false);
     }
