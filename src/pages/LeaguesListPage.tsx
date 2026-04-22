@@ -30,6 +30,8 @@ const LeaguesListPage = () => {
   const [loading, setLoading] = useState(true);
   const [joinCode, setJoinCode] = useState('');
   const [joining, setJoining] = useState(false);
+  const [joinedLeague, setJoinedLeague] = useState<{ id: string; name: string; join_code: string } | null>(null);
+  const [alreadyMember, setAlreadyMember] = useState(false);
 
   useEffect(() => {
     fetchLeagues();
