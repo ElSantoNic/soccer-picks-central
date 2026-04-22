@@ -163,6 +163,13 @@ const ResultsPage = () => {
               ))}
             </div>
           </>
+        ) : error ? (
+          <div className="bg-card border border-destructive/40 rounded-xl p-6 text-center">
+            <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-2" />
+            <p className="text-base font-semibold mb-2">Algo salió mal</p>
+            <p className="text-sm text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>Reintentar</Button>
+          </div>
         ) : !user ? (
           <div className="bg-card border border-border rounded-xl p-6 text-center">
             <p className="text-base font-semibold mb-2">Inicia sesión para ver tus resultados</p>
