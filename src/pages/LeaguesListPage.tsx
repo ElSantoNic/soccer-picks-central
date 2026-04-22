@@ -175,6 +175,61 @@ const LeaguesListPage = () => {
         )}
       </main>
       <BottomNav />
+
+      <Dialog
+        open={!!joinedLeague}
+        onOpenChange={(open) => {
+          if (!open) setJoinedLeague(null);
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <div className="text-5xl text-center mb-2">🎉</div>
+            <DialogTitle className="text-center">
+              {alreadyMember ? "Ya eres miembro" : "¡Te uniste a la quiniela!"}
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {alreadyMember
+                ? "Ya formabas parte de esta quiniela."
+                : "Bienvenido. Aquí están los detalles:"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {joinedLeague && (
+            <div className="bg-muted/50 rounded-xl p-4 my-2 text-center">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                Quiniela
+              </p>
+              <p className="font-bold text-lg text-foreground mb-3">
+                {joinedLeague.name}
+              </p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                Código de acceso
+              </p>
+              <p className="font-mono text-2xl tracking-widest text-primary font-bold">
+                {joinedLeague.join_code}
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="flex-col sm:flex-col gap-2">
+            <button
+              onClick={() => {
+                if (joinedLeague) navigate(`/league/${joinedLeague.id}`);
+              }}
+              className="w-full bg-primary text-primary-foreground font-semibold py-2.5 px-4 rounded-lg text-sm hover:bg-primary/90 transition-all"
+            >
+              Ir a la quiniela
+            </button>
+            <button
+              onClick={() => setJoinedLeague(null)}
+              className="w-full bg-card border border-border text-foreground font-medium py-2.5 px-4 rounded-lg text-sm hover:bg-muted transition-all"
+            >
+              Cerrar
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
