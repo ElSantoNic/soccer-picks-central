@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,11 +8,19 @@ import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
 
 interface MatchRow {
   id: string;
+  jornada_id: string;
   home_team: string;
   away_team: string;
   home_score: number | null;
@@ -23,27 +31,38 @@ interface MatchRow {
 
 interface PickRow {
   match_id: string;
+  jornada_id: string;
   pick: string;
   is_correct: boolean | null;
   points_awarded: number;
+}
+
+interface JornadaBundle {
+  id: string;
+  jornada_number: number;
+  matches: MatchRow[];
+  picksByMatch: Record<string, PickRow>;
 }
 
 const ResultsPage = () => {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [jornadaNumber, setJornadaNumber] = useState<number | null>(null);
-  const [matches, setMatches] = useState<MatchRow[]>([]);
-  const [picksByMatch, setPicksByMatch] = useState<Record<string, PickRow>>({});
+  const [bundles, setBundles] = useState<JornadaBundle[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const load = async () => {
       setLoading(true);
       setError(null);
 
-      // 1. Find the latest completed jornada
+      // 1. All jornadas (for jornada_number lookup + ordering)
       const { data: jornadaRows, error: jornadaErr } = await supabase
         .from("jornadas")
         .select("id, jornada_number")
@@ -51,102 +70,106 @@ const ResultsPage = () => {
 
       if (jornadaErr) {
         console.error("Error fetching jornadas:", jornadaErr);
-        toast.error("No pudimos cargar las jornadas", {
-          description: jornadaErr.message,
-        });
+        toast.error("No pudimos cargar las jornadas", { description: jornadaErr.message });
         setError("No pudimos cargar las jornadas. Inténtalo de nuevo.");
         setLoading(false);
         return;
       }
 
-      let bestJornadaId: string | null = null;
-      let bestNumber: number | null = null;
+      const jornadaById = new Map<string, number>(
+        (jornadaRows ?? []).map((j) => [j.id, j.jornada_number]),
+      );
 
-      for (const j of jornadaRows ?? []) {
-        const { count, error: countErr } = await supabase
-          .from("matches")
-          .select("id", { count: "exact", head: true })
-          .eq("jornada_id", j.id)
-          .not("result_1x2", "is", null);
+      // 2. Current user's picks across all jornadas (RLS scopes to them)
+      const { data: pickRows, error: pickErr } = await supabase
+        .from("picks")
+        .select("match_id, jornada_id, pick, is_correct, points_awarded");
 
-        if (countErr) {
-          console.error("Error checking jornada results:", countErr);
-          toast.error("Error al buscar la última jornada completada", {
-            description: countErr.message,
-          });
-          setError("Error al buscar la última jornada completada.");
-          setLoading(false);
-          return;
-        }
-
-        if ((count ?? 0) > 0) {
-          bestJornadaId = j.id;
-          bestNumber = j.jornada_number;
-          break;
-        }
-      }
-
-      if (!bestJornadaId || bestNumber === null) {
-        setJornadaNumber(null);
-        setMatches([]);
-        setPicksByMatch({});
+      if (pickErr) {
+        console.error("Error fetching picks:", pickErr);
+        toast.error("No pudimos cargar tus picks", { description: pickErr.message });
+        setError("No pudimos cargar tus picks.");
         setLoading(false);
         return;
       }
 
-      // 2. Fetch all scored matches for that jornada
+      const picks = (pickRows ?? []) as PickRow[];
+      const playedJornadaIds = Array.from(new Set(picks.map((p) => p.jornada_id)));
+
+      if (playedJornadaIds.length === 0) {
+        setBundles([]);
+        setSelectedId(null);
+        setLoading(false);
+        return;
+      }
+
+      // 3. Scored matches in those jornadas
       const { data: matchRows, error: matchErr } = await supabase
         .from("matches")
-        .select("id, home_team, away_team, home_score, away_score, result_1x2, kickoff_utc")
-        .eq("jornada_id", bestJornadaId)
+        .select("id, jornada_id, home_team, away_team, home_score, away_score, result_1x2, kickoff_utc")
+        .in("jornada_id", playedJornadaIds)
         .not("result_1x2", "is", null)
         .order("kickoff_utc");
 
       if (matchErr) {
         console.error("Error fetching matches:", matchErr);
-        toast.error("No pudimos cargar los partidos", {
-          description: matchErr.message,
-        });
-        setError("No pudimos cargar los partidos de la jornada.");
+        toast.error("No pudimos cargar los partidos", { description: matchErr.message });
+        setError("No pudimos cargar los partidos.");
         setLoading(false);
         return;
       }
 
-      const finalMatches = (matchRows ?? []) as MatchRow[];
+      const matches = (matchRows ?? []) as MatchRow[];
 
-      // 3. Fetch user picks for those matches (RLS scopes to current user)
-      let pickMap: Record<string, PickRow> = {};
-      if (user && finalMatches.length > 0) {
-        const { data: pickRows, error: pickErr } = await supabase
-          .from("picks")
-          .select("match_id, pick, is_correct, points_awarded")
-          .eq("jornada_id", bestJornadaId)
-          .in(
-            "match_id",
-            finalMatches.map((m) => m.id),
-          );
-
-        if (pickErr) {
-          console.error("Error fetching picks:", pickErr);
-          toast.error("No pudimos cargar tus picks", {
-            description: pickErr.message,
-          });
-          // Non-fatal: still show match results without pick overlay
-        } else {
-          pickMap = Object.fromEntries(((pickRows ?? []) as PickRow[]).map((p) => [p.match_id, p]));
+      // 4. Build bundles, keeping only jornadas with >=1 user pick on a scored match
+      const bundleMap = new Map<string, JornadaBundle>();
+      for (const jid of playedJornadaIds) {
+        const num = jornadaById.get(jid);
+        if (num === undefined) continue;
+        bundleMap.set(jid, {
+          id: jid,
+          jornada_number: num,
+          matches: [],
+          picksByMatch: {},
+        });
+      }
+      for (const m of matches) {
+        const b = bundleMap.get(m.jornada_id);
+        if (b) b.matches.push(m);
+      }
+      for (const p of picks) {
+        const b = bundleMap.get(p.jornada_id);
+        if (!b) continue;
+        // Only keep picks tied to a scored match in the bundle
+        if (b.matches.some((m) => m.id === p.match_id)) {
+          b.picksByMatch[p.match_id] = p;
         }
       }
 
-      setJornadaNumber(bestNumber);
-      setMatches(finalMatches);
-      setPicksByMatch(pickMap);
+      const built = Array.from(bundleMap.values())
+        .filter((b) => b.matches.length > 0 && Object.keys(b.picksByMatch).length > 0)
+        .sort((a, b) => b.jornada_number - a.jornada_number);
+
+      setBundles(built);
+      setSelectedId(built[0]?.id ?? null);
       setLoading(false);
     };
 
     load();
   }, [user, authLoading]);
 
-  const totalPoints = Object.values(picksByMatch).reduce((sum, p) => sum + (p.points_awarded ?? 0), 0);
+  const selected = useMemo(
+    () => bundles.find((b) => b.id === selectedId) ?? null,
+    [bundles, selectedId],
+  );
+
+  const totalPoints = useMemo(() => {
+    if (!selected) return 0;
+    return Object.values(selected.picksByMatch).reduce(
+      (sum, p) => sum + (p.points_awarded ?? 0),
+      0,
+    );
+  }, [selected]);
 
   return (
     <div className="min-h-screen pb-20 bg-background">
@@ -180,27 +203,50 @@ const ResultsPage = () => {
               <Link to="/auth">Iniciar sesión</Link>
             </Button>
           </div>
-        ) : jornadaNumber === null || matches.length === 0 ? (
+        ) : !selected ? (
           <div className="bg-card border border-border rounded-xl p-6 text-center">
-            <p className="text-base font-semibold mb-1">Aún no hay resultados para mostrar</p>
+            <p className="text-base font-semibold mb-1">Aún no tienes resultados</p>
             <p className="text-sm text-muted-foreground">
-              Cuando termine una jornada con resultados publicados, aparecerá aquí.
+              Cuando termine una jornada en la que participaste, aparecerá aquí.
             </p>
           </div>
         ) : (
           <>
+            {bundles.length > 1 && (
+              <div className="mb-4">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Jornada
+                </label>
+                <Select value={selectedId ?? undefined} onValueChange={setSelectedId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Elige una jornada" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bundles.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        Jornada {b.jornada_number}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <motion.div
+              key={selected.id}
               className="bg-card border border-border rounded-xl p-6 mb-5 text-center"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
             >
-              <p className="text-sm text-muted-foreground mb-1">Jornada {jornadaNumber} completada</p>
+              <p className="text-sm text-muted-foreground mb-1">
+                Jornada {selected.jornada_number} completada
+              </p>
               <motion.p
                 className="text-5xl font-bold text-primary"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
               >
                 {totalPoints}
               </motion.p>
@@ -209,7 +255,7 @@ const ResultsPage = () => {
                 className="inline-block mt-2 text-sm font-semibold text-success bg-success/10 px-3 py-1 rounded-full"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.4 }}
               >
                 +{totalPoints} pts esta jornada
               </motion.span>
@@ -218,15 +264,15 @@ const ResultsPage = () => {
             <h2 className="text-base font-bold mb-3">Resultados</h2>
 
             <div className="space-y-3">
-              {matches.map((match, i) => {
-                const pick = picksByMatch[match.id];
+              {selected.matches.map((match, i) => {
+                const pick = selected.picksByMatch[match.id];
                 const userPick = (pick?.pick as "1" | "X" | "2" | undefined) ?? null;
                 return (
                   <motion.div
-                    key={match.id}
+                    key={`${selected.id}-${match.id}`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
+                    transition={{ delay: i * 0.04 }}
                   >
                     <ResultCard
                       homeTeam={match.home_team}
