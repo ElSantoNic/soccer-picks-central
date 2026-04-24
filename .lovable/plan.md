@@ -1,44 +1,29 @@
+## Jornada switcher on Resultados
 
+**File:** `src/pages/ResultsPage.tsx` (only). No DB/RPC/RLS changes.
 
-## Fix "Código no encontrado" when joining a league
+### Loader
+1. Fetch all `jornadas` (`id`, `jornada_number`) desc.
+2. Fetch current user's `picks` (`match_id`, `jornada_id`, `pick`, `is_correct`, `points_awarded`) — RLS scopes to them.
+3. From the user's picks, get the distinct `jornada_id`s, then fetch `matches` for those jornadas where `result_1x2 is not null`.
+4. Build bundles:
+   ```ts
+   type JornadaBundle = {
+     id: string;
+     jornada_number: number;
+     matches: MatchRow[];
+     picksByMatch: Record<string, PickRow>;
+   };
+   ```
+5. Keep only bundles with ≥1 user pick on a scored match. Sort desc by `jornada_number`.
+6. Default `selectedId` = first (highest) bundle.
 
-### Root cause
+### UI
+- Add a shadcn `<Select>` above the points card listing `"Jornada {n}"` for each played bundle. Hidden if only one bundle exists.
+- Points card, "Resultados" header, and match list derive from the selected bundle via `useMemo`.
+- Total points = sum of `points_awarded` in selected bundle.
+- Empty state copy: *"Aún no tienes resultados. Cuando termine una jornada en la que participaste, aparecerá aquí."*
+- Loading/error states unchanged.
 
-Two bugs in `src/pages/LeaguesListPage.tsx → handleJoin`:
-
-1. **RLS hides the league during lookup.** The `leagues` SELECT policy only exposes rows to the creator or existing members. A user trying to *join* is neither, so `select('id').eq('join_code', '7661').single()` returns no row → the alert fires even though the league exists (verified in DB: id `666f1d24…`, code `7661`, name "tus amigos").
-2. **No membership row is inserted.** Even if lookup succeeded, the handler only navigates — it never adds the user to `league_members`, so `/league/:id` would also be blocked by RLS.
-
-### Fix
-
-**A. Add a SECURITY DEFINER RPC for code-based lookup** (bypasses RLS safely, only returns id + name, never lists all leagues):
-
-```sql
-create or replace function public.find_league_by_code(_code text)
-returns table (id uuid, name text)
-language sql stable security definer set search_path = public
-as $$
-  select id, name from public.leagues where join_code = _code limit 1;
-$$;
-grant execute on function public.find_league_by_code(text) to authenticated;
-```
-
-**B. Update `handleJoin` in `src/pages/LeaguesListPage.tsx`** to:
-1. Require auth — if `user` is null, redirect to `/auth`.
-2. Call `supabase.rpc('find_league_by_code', { _code: joinCode.trim() })`.
-3. If found, upsert into `league_members` (`league_id`, `user_id`, `display_name` from profile, default `avatar_emoji`) — ignore conflict if already a member.
-4. Replace `alert()` with a `sonner` toast (`"Código no encontrado"` / `"¡Te uniste a {name}!"`).
-5. Navigate to `/league/:id` only after successful membership.
-
-**C. Also fix `fetchLeagues`** — it currently lists *all* leagues the user can read, but with RLS that's only ones they're in or created (which is correct). However it shows `join_code` to every member; that's fine for members. No change needed there.
-
-### Files touched
-
-- New migration: `find_league_by_code` RPC.
-- `src/pages/LeaguesListPage.tsx` — rewrite `handleJoin` (auth check, RPC, insert into `league_members`, toast feedback).
-
-### Out of scope
-
-- League detail page RLS (already correct — you'll be a member after joining).
-- Renaming the duplicate "Tus Amigos" / "tus amigos" leagues — let me know if you want one removed.
-
+### Verification
+- Manually pick jornadas in the dropdown and confirm matches list and total points update accordingly.
