@@ -112,7 +112,31 @@ export async function runChecks(): Promise<RunResult> {
     if (lErr || !league) throw new Error(`league: ${lErr?.message}`);
     leagueId = league.id;
 
-    const { data: member, error: mErr } = await admin
+    // Second league + second user — used to verify identity-field swaps are blocked.
+    const otherJoinCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const { data: otherLeague, error: olErr } = await admin
+      .from("leagues")
+      .insert({
+        name: `RLS Test Other ${otherJoinCode}`,
+        join_code: otherJoinCode,
+        created_by: userId,
+      })
+      .select()
+      .single();
+    if (olErr || !otherLeague)
+      throw new Error(`otherLeague: ${olErr?.message}`);
+    otherLeagueId = otherLeague.id;
+
+    const otherEmail = `rls-test-other+${crypto.randomUUID()}@example.com`;
+    const { data: otherCreated, error: ocErr } =
+      await admin.auth.admin.createUser({
+        email: otherEmail,
+        password: crypto.randomUUID() + "Aa1!",
+        email_confirm: true,
+      });
+    if (ocErr || !otherCreated.user)
+      throw new Error(`createOtherUser: ${ocErr?.message}`);
+    otherUserId = otherCreated.user.id;
       .from("league_members")
       .insert({
         league_id: leagueId,
