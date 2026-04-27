@@ -223,7 +223,70 @@ export async function runChecks(): Promise<RunResult> {
       });
     }
 
-    // ----- Check 4: avatar_emoji allowed -----
+    // ----- Check 4: display_name blocked -----
+    {
+      const { error } = await userClient
+        .from("league_members")
+        .update({ display_name: "Hacked Name" })
+        .eq("id", memberId);
+      const { data: row } = await admin
+        .from("league_members")
+        .select("display_name")
+        .eq("id", memberId)
+        .single();
+      const blocked = !!error && row?.display_name === "RLS Tester";
+      checks.push({
+        name: "display_name update blocked",
+        passed: blocked,
+        detail: error
+          ? `error="${error.message}", display_name=${row?.display_name}`
+          : `NO ERROR — display_name=${row?.display_name} (security failure)`,
+      });
+    }
+
+    // ----- Check 5: user_id blocked (cannot reassign membership to another user) -----
+    {
+      const { error } = await userClient
+        .from("league_members")
+        .update({ user_id: otherUserId })
+        .eq("id", memberId);
+      const { data: row } = await admin
+        .from("league_members")
+        .select("user_id")
+        .eq("id", memberId)
+        .single();
+      const blocked = !!error && row?.user_id === userId;
+      checks.push({
+        name: "user_id update blocked",
+        passed: blocked,
+        detail: error
+          ? `error="${error.message}", user_id=${row?.user_id}`
+          : `NO ERROR — user_id=${row?.user_id} (security failure)`,
+      });
+    }
+
+    // ----- Check 6: league_id blocked (cannot move membership to another league) -----
+    {
+      const { error } = await userClient
+        .from("league_members")
+        .update({ league_id: otherLeagueId })
+        .eq("id", memberId);
+      const { data: row } = await admin
+        .from("league_members")
+        .select("league_id")
+        .eq("id", memberId)
+        .single();
+      const blocked = !!error && row?.league_id === leagueId;
+      checks.push({
+        name: "league_id update blocked",
+        passed: blocked,
+        detail: error
+          ? `error="${error.message}", league_id=${row?.league_id}`
+          : `NO ERROR — league_id=${row?.league_id} (security failure)`,
+      });
+    }
+
+    // ----- Check 7: avatar_emoji allowed -----
     {
       const { error } = await userClient
         .from("league_members")
@@ -247,7 +310,10 @@ export async function runChecks(): Promise<RunResult> {
     if (memberId)
       await admin.from("league_members").delete().eq("id", memberId);
     if (leagueId) await admin.from("leagues").delete().eq("id", leagueId);
+    if (otherLeagueId)
+      await admin.from("leagues").delete().eq("id", otherLeagueId);
     if (userId) await admin.auth.admin.deleteUser(userId);
+    if (otherUserId) await admin.auth.admin.deleteUser(otherUserId);
   }
 
   return { ok: checks.every((c) => c.passed), checks };
