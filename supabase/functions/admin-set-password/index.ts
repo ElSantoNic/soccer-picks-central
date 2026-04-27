@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ALLOWED_EMAIL = "nick.santana@gmail.com";
+const ALLOWED_EMAIL = (Deno.env.get("ADMIN_ALLOWED_EMAIL") ?? "").trim().toLowerCase();
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (email.trim().toLowerCase() !== ALLOWED_EMAIL) {
+    if (!ALLOWED_EMAIL || email.trim().toLowerCase() !== ALLOWED_EMAIL) {
       return new Response(JSON.stringify({ error: "Email not allowed" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
