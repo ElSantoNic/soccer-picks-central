@@ -56,6 +56,6 @@ Deno.test(
     }
 
     assert(result.ok, "One or more RLS regression checks failed");
-    assertEquals(result.checks.length, 7, "Expected 7 checks");
+    assertEquals(result.checks.length, 9, "Expected 9 checks");
   },
 );

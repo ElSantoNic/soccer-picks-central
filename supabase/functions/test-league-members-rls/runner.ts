@@ -306,9 +306,58 @@ export async function runChecks(): Promise<RunResult> {
           : `avatar_emoji=${row?.avatar_emoji}`,
       });
     }
+
+    // ----- Check 8: INSERT with another user's user_id is blocked -----
+    {
+      const { error } = await userClient.from("league_members").insert({
+        league_id: leagueId,
+        user_id: otherUserId, // attacker tries to insert a row owned by someone else
+        display_name: "Impersonated",
+      });
+      // Confirm no row exists for the other user in this league.
+      const { data: rows } = await admin
+        .from("league_members")
+        .select("id")
+        .eq("league_id", leagueId)
+        .eq("user_id", otherUserId);
+      const blocked = !!error && (rows?.length ?? 0) === 0;
+      checks.push({
+        name: "insert with foreign user_id blocked",
+        passed: blocked,
+        detail: error
+          ? `error="${error.message}", rows_for_other_user=${rows?.length ?? 0}`
+          : `NO ERROR — rows_for_other_user=${rows?.length ?? 0} (security failure)`,
+      });
+    }
+
+    // ----- Check 9: INSERT self into a different league is allowed (join-by-code flow) -----
+    let extraMemberId: string | null = null;
+    {
+      const { data: inserted, error } = await userClient
+        .from("league_members")
+        .insert({
+          league_id: otherLeagueId,
+          user_id: userId,
+          display_name: "RLS Tester (other league)",
+        })
+        .select()
+        .single();
+      const ok = !error && !!inserted;
+      if (inserted) extraMemberId = inserted.id;
+      checks.push({
+        name: "insert self into another league allowed",
+        passed: ok,
+        detail: error
+          ? `unexpected error="${error.message}"`
+          : `inserted_id=${inserted?.id}`,
+      });
+    }
   } finally {
-    if (memberId)
-      await admin.from("league_members").delete().eq("id", memberId);
+    // Best-effort cleanup of every membership owned by either test user, in
+    // case extra rows were created by checks above.
+    if (userId) await admin.from("league_members").delete().eq("user_id", userId);
+    if (otherUserId)
+      await admin.from("league_members").delete().eq("user_id", otherUserId);
     if (leagueId) await admin.from("leagues").delete().eq("id", leagueId);
     if (otherLeagueId)
       await admin.from("leagues").delete().eq("id", otherLeagueId);
