@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 /**
  * Security regression test:
@@ -14,10 +15,10 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 describe("profiles RLS (anonymous)", () => {
-  let anon: ReturnType<typeof createClient>;
+  let anon: ReturnType<typeof createClient<Database>>;
 
   beforeAll(() => {
-    anon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    anon = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
   });
