@@ -32,7 +32,7 @@ const LoginPage = () => {
 
   // Setup-password modal state
   const [setupOpen, setSetupOpen] = useState(false);
-  const [setupEmail, setSetupEmail] = useState("nick.santana@gmail.com");
+  const [setupEmail, setSetupEmail] = useState("");
   const [setupPassword, setSetupPassword] = useState("");
   const [setupSecret, setSetupSecret] = useState("");
   const [setupLoading, setSetupLoading] = useState(false);
