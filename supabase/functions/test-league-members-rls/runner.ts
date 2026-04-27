@@ -73,7 +73,9 @@ export async function runChecks(): Promise<RunResult> {
 
   const checks: CheckResult[] = [];
   let userId: string | null = null;
+  let otherUserId: string | null = null;
   let leagueId: string | null = null;
+  let otherLeagueId: string | null = null;
   let memberId: string | null = null;
 
   try {
