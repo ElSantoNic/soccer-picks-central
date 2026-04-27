@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (email.trim().toLowerCase() !== ALLOWED_EMAIL) {
+    if (!ALLOWED_EMAIL || email.trim().toLowerCase() !== ALLOWED_EMAIL) {
       return new Response(JSON.stringify({ error: "Email not allowed" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
