@@ -137,6 +137,8 @@ export async function runChecks(): Promise<RunResult> {
     if (ocErr || !otherCreated.user)
       throw new Error(`createOtherUser: ${ocErr?.message}`);
     otherUserId = otherCreated.user.id;
+
+    const { data: member, error: mErr } = await admin
       .from("league_members")
       .insert({
         league_id: leagueId,
