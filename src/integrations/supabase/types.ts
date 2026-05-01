@@ -230,7 +230,9 @@ export type Database = {
           avatar_emoji: string
           created_at: string
           display_name: string | null
+          email: string | null
           id: string
+          notification_channel: string
           phone: string | null
           updated_at: string
           user_id: string
@@ -239,7 +241,9 @@ export type Database = {
           avatar_emoji?: string
           created_at?: string
           display_name?: string | null
+          email?: string | null
           id?: string
+          notification_channel?: string
           phone?: string | null
           updated_at?: string
           user_id: string
@@ -248,7 +252,9 @@ export type Database = {
           avatar_emoji?: string
           created_at?: string
           display_name?: string | null
+          email?: string | null
           id?: string
+          notification_channel?: string
           phone?: string | null
           updated_at?: string
           user_id?: string
