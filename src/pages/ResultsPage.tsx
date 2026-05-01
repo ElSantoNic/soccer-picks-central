@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ResultCard from "@/components/ResultCard";
@@ -46,6 +47,7 @@ interface JornadaBundle {
 
 const ResultsPage = () => {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bundles, setBundles] = useState<JornadaBundle[]>([]);
@@ -62,7 +64,6 @@ const ResultsPage = () => {
       setLoading(true);
       setError(null);
 
-      // 1. All jornadas (for jornada_number lookup + ordering)
       const { data: jornadaRows, error: jornadaErr } = await supabase
         .from("jornadas")
         .select("id, jornada_number")
@@ -70,8 +71,8 @@ const ResultsPage = () => {
 
       if (jornadaErr) {
         console.error("Error fetching jornadas:", jornadaErr);
-        toast.error("No pudimos cargar las jornadas", { description: jornadaErr.message });
-        setError("No pudimos cargar las jornadas. Inténtalo de nuevo.");
+        toast.error(t("results.errLoadJornadasToast"), { description: jornadaErr.message });
+        setError(t("results.errLoadJornadas"));
         setLoading(false);
         return;
       }
@@ -80,15 +81,14 @@ const ResultsPage = () => {
         (jornadaRows ?? []).map((j) => [j.id, j.jornada_number]),
       );
 
-      // 2. Current user's picks across all jornadas (RLS scopes to them)
       const { data: pickRows, error: pickErr } = await supabase
         .from("picks")
         .select("match_id, jornada_id, pick, is_correct, points_awarded");
 
       if (pickErr) {
         console.error("Error fetching picks:", pickErr);
-        toast.error("No pudimos cargar tus picks", { description: pickErr.message });
-        setError("No pudimos cargar tus picks.");
+        toast.error(t("results.errLoadPicksToast"), { description: pickErr.message });
+        setError(t("results.errLoadPicks"));
         setLoading(false);
         return;
       }
@@ -103,7 +103,6 @@ const ResultsPage = () => {
         return;
       }
 
-      // 3. Scored matches in those jornadas
       const { data: matchRows, error: matchErr } = await supabase
         .from("matches")
         .select("id, jornada_id, home_team, away_team, home_score, away_score, result_1x2, kickoff_utc")
@@ -113,15 +112,14 @@ const ResultsPage = () => {
 
       if (matchErr) {
         console.error("Error fetching matches:", matchErr);
-        toast.error("No pudimos cargar los partidos", { description: matchErr.message });
-        setError("No pudimos cargar los partidos.");
+        toast.error(t("results.errLoadMatchesToast"), { description: matchErr.message });
+        setError(t("results.errLoadMatches"));
         setLoading(false);
         return;
       }
 
       const matches = (matchRows ?? []) as MatchRow[];
 
-      // 4. Build bundles, keeping only jornadas with >=1 user pick on a scored match
       const bundleMap = new Map<string, JornadaBundle>();
       for (const jid of playedJornadaIds) {
         const num = jornadaById.get(jid);
@@ -140,7 +138,6 @@ const ResultsPage = () => {
       for (const p of picks) {
         const b = bundleMap.get(p.jornada_id);
         if (!b) continue;
-        // Only keep picks tied to a scored match in the bundle
         if (b.matches.some((m) => m.id === p.match_id)) {
           b.picksByMatch[p.match_id] = p;
         }
@@ -156,7 +153,7 @@ const ResultsPage = () => {
     };
 
     load();
-  }, [user, authLoading]);
+  }, [user, authLoading, t]);
 
   const selected = useMemo(
     () => bundles.find((b) => b.id === selectedId) ?? null,
@@ -189,25 +186,25 @@ const ResultsPage = () => {
         ) : error ? (
           <div className="bg-card border border-destructive/40 rounded-xl p-6 text-center">
             <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-2" />
-            <p className="text-base font-semibold mb-2">Algo salió mal</p>
+            <p className="text-base font-semibold mb-2">{t("common.somethingWrong")}</p>
             <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()}>Reintentar</Button>
+            <Button onClick={() => window.location.reload()}>{t("common.retry")}</Button>
           </div>
         ) : !user ? (
           <div className="bg-card border border-border rounded-xl p-6 text-center">
-            <p className="text-base font-semibold mb-2">Inicia sesión para ver tus resultados</p>
+            <p className="text-base font-semibold mb-2">{t("results.signInTitle")}</p>
             <p className="text-sm text-muted-foreground mb-4">
-              Necesitamos saber quién eres para mostrar tus picks y puntos.
+              {t("results.signInDesc")}
             </p>
             <Button asChild>
-              <Link to="/auth">Iniciar sesión</Link>
+              <Link to="/auth">{t("results.signInBtn")}</Link>
             </Button>
           </div>
         ) : !selected ? (
           <div className="bg-card border border-border rounded-xl p-6 text-center">
-            <p className="text-base font-semibold mb-1">Aún no tienes resultados</p>
+            <p className="text-base font-semibold mb-1">{t("results.noResultsTitle")}</p>
             <p className="text-sm text-muted-foreground">
-              Cuando termine una jornada en la que participaste, aparecerá aquí.
+              {t("results.noResultsDesc")}
             </p>
           </div>
         ) : (
@@ -215,16 +212,16 @@ const ResultsPage = () => {
             {bundles.length > 1 && (
               <div className="mb-4">
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                  Jornada
+                  {t("results.jornadaLabel")}
                 </label>
                 <Select value={selectedId ?? undefined} onValueChange={setSelectedId}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Elige una jornada" />
+                    <SelectValue placeholder={t("results.pickJornada")} />
                   </SelectTrigger>
                   <SelectContent>
                     {bundles.map((b) => (
                       <SelectItem key={b.id} value={b.id}>
-                        Jornada {b.jornada_number}
+                        {t("results.jornadaItem", { number: b.jornada_number })}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -240,7 +237,7 @@ const ResultsPage = () => {
               transition={{ duration: 0.4 }}
             >
               <p className="text-sm text-muted-foreground mb-1">
-                Jornada {selected.jornada_number} completada
+                {t("results.jornadaCompleted", { number: selected.jornada_number })}
               </p>
               <motion.p
                 className="text-5xl font-bold text-primary"
@@ -250,18 +247,18 @@ const ResultsPage = () => {
               >
                 {totalPoints}
               </motion.p>
-              <p className="text-sm text-muted-foreground">puntos</p>
+              <p className="text-sm text-muted-foreground">{t("results.points")}</p>
               <motion.span
                 className="inline-block mt-2 text-sm font-semibold text-success bg-success/10 px-3 py-1 rounded-full"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                +{totalPoints} pts esta jornada
+                {t("results.pointsThisJornada", { n: totalPoints })}
               </motion.span>
             </motion.div>
 
-            <h2 className="text-base font-bold mb-3">Resultados</h2>
+            <h2 className="text-base font-bold mb-3">{t("results.heading")}</h2>
 
             <div className="space-y-3">
               {selected.matches.map((match, i) => {

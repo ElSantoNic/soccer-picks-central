@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Trophy, PartyPopper } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,7 @@ interface League {
 const LeaguesListPage = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   const [leagues, setLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(true);
   const [joinCode, setJoinCode] = useState('');
@@ -53,7 +55,6 @@ const LeaguesListPage = () => {
             .select('*', { count: 'exact', head: true })
             .eq('league_id', league.id);
 
-          // Only the creator can see the join_code.
           let join_code: string | null = null;
           if (user && league.created_by === user.id) {
             const { data: codeData } = await supabase
@@ -74,7 +75,7 @@ const LeaguesListPage = () => {
     if (!code) return;
 
     if (!user) {
-      toast.error("Inicia sesión para unirte a una quiniela");
+      toast.error(t("leagues.errSignInToJoin"));
       navigate('/auth');
       return;
     }
@@ -86,13 +87,13 @@ const LeaguesListPage = () => {
 
       if (rpcErr) {
         console.error('find_league_by_code error', rpcErr);
-        toast.error("No se pudo buscar la quiniela. Intenta de nuevo.");
+        toast.error(t("leagues.errSearch"));
         return;
       }
 
       const league = Array.isArray(found) ? found[0] : found;
       if (!league) {
-        toast.error("Código no encontrado");
+        toast.error(t("leagues.errCodeNotFound"));
         return;
       }
 
@@ -105,18 +106,15 @@ const LeaguesListPage = () => {
           avatar_emoji: profile?.avatar_emoji || '⚽',
         });
 
-      // Ignore unique-violation (already a member); surface other errors.
       const isAlreadyMember = !!insertErr && insertErr.code === '23505';
       if (insertErr && !isAlreadyMember) {
         console.error('join league insert error', insertErr);
-        toast.error("No se pudo unir a la quiniela. Intenta de nuevo.");
+        toast.error(t("leagues.errJoin"));
         return;
       }
 
       setJoinCode('');
       setAlreadyMember(isAlreadyMember);
-      // Show the code the user just entered — confirms membership without
-      // exposing the canonical join_code to non-creators server-side.
       setJoinedLeague({ id: league.id, name: league.name, join_code: code });
       fetchLeagues();
     } finally {
@@ -129,22 +127,21 @@ const LeaguesListPage = () => {
       <TopBar />
       <main className="max-w-lg mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-foreground">Mis Quinielas</h2>
+          <h2 className="text-xl font-bold text-foreground">{t("leagues.myLeagues")}</h2>
           <button
             onClick={() => navigate('/league/create')}
             className="bg-primary text-primary-foreground font-bold py-2 px-4 rounded-lg text-sm hover:bg-primary/90 active:scale-95 transition-all"
           >
-            + Crear
+            {t("leagues.create")}
           </button>
         </div>
 
-        {/* Join by code */}
         <div className="flex gap-2 mb-6">
           <input
             type="text"
             value={joinCode}
             onChange={e => setJoinCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-            placeholder="Código de acceso"
+            placeholder={t("leagues.joinPlaceholder")}
             maxLength={4}
             className="flex-1 px-4 py-2.5 rounded-lg border border-input bg-card text-sm font-mono text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-ring"
           />
@@ -153,17 +150,17 @@ const LeaguesListPage = () => {
             disabled={joining}
             className="bg-primary text-primary-foreground font-semibold py-2.5 px-5 rounded-lg text-sm hover:bg-primary/90 transition-all disabled:opacity-60"
           >
-            {joining ? '...' : 'Unirse'}
+            {joining ? t("leagues.joining") : t("leagues.join")}
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">Cargando...</div>
+          <div className="text-center py-12 text-muted-foreground text-sm">{t("common.loading")}</div>
         ) : leagues.length === 0 ? (
           <div className="text-center py-12">
             <Trophy size={44} strokeWidth={2.25} className="text-muted-foreground mx-auto mb-3" />
-            <p className="font-semibold mb-1">No tienes quinielas aún</p>
-            <p className="text-sm text-muted-foreground">Crea una o únete con un código</p>
+            <p className="font-semibold mb-1">{t("leagues.emptyTitle")}</p>
+            <p className="text-sm text-muted-foreground">{t("leagues.emptyDesc")}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -177,8 +174,8 @@ const LeaguesListPage = () => {
                   <div>
                     <p className="font-bold text-sm">{league.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {league.member_count} miembros
-                      {league.join_code ? ` · Código: ${league.join_code}` : ''}
+                      {t("leagues.membersCount", { count: league.member_count ?? 0 })}
+                      {league.join_code ? t("leagues.withCode", { code: league.join_code }) : ''}
                     </p>
                   </div>
                   <span className="text-muted-foreground text-lg">→</span>
@@ -200,25 +197,25 @@ const LeaguesListPage = () => {
           <DialogHeader>
             <div className="flex justify-center mb-2"><PartyPopper size={48} strokeWidth={2.25} className="text-primary" /></div>
             <DialogTitle className="text-center">
-              {alreadyMember ? "Ya eres miembro" : "¡Te uniste a la quiniela!"}
+              {alreadyMember ? t("leagues.alreadyMemberTitle") : t("leagues.joinedTitle")}
             </DialogTitle>
             <DialogDescription className="text-center">
               {alreadyMember
-                ? "Ya formabas parte de esta quiniela."
-                : "Bienvenido. Aquí están los detalles:"}
+                ? t("leagues.alreadyMemberDesc")
+                : t("leagues.joinedDesc")}
             </DialogDescription>
           </DialogHeader>
 
           {joinedLeague && (
             <div className="bg-muted/50 rounded-xl p-4 my-2 text-center">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                Quiniela
+                {t("leagues.leagueLabel")}
               </p>
               <p className="font-bold text-lg text-foreground mb-3">
                 {joinedLeague.name}
               </p>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                Código de acceso
+                {t("leagues.joinCodeLabel")}
               </p>
               <p className="font-mono text-2xl tracking-widest text-primary font-bold">
                 {joinedLeague.join_code}
@@ -233,13 +230,13 @@ const LeaguesListPage = () => {
               }}
               className="w-full bg-primary text-primary-foreground font-semibold py-2.5 px-4 rounded-lg text-sm hover:bg-primary/90 transition-all"
             >
-              Ir a la quiniela
+              {t("leagues.goToLeague")}
             </button>
             <button
               onClick={() => setJoinedLeague(null)}
               className="w-full bg-card border border-border text-foreground font-medium py-2.5 px-4 rounded-lg text-sm hover:bg-muted transition-all"
             >
-              Cerrar
+              {t("common.close")}
             </button>
           </DialogFooter>
         </DialogContent>

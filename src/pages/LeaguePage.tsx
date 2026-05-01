@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Frown, Share2, BarChart3, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +29,7 @@ interface League {
 const LeaguePage = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
@@ -65,7 +67,7 @@ const LeaguePage = () => {
     return (
       <div className="min-h-screen pb-20 bg-background">
         <TopBar />
-        <div className="text-center py-20 text-muted-foreground text-sm">Cargando...</div>
+        <div className="text-center py-20 text-muted-foreground text-sm">{t("common.loading")}</div>
         <BottomNav />
       </div>
     );
@@ -77,7 +79,7 @@ const LeaguePage = () => {
         <TopBar />
         <div className="text-center py-20">
           <Frown size={44} strokeWidth={2.25} className="text-muted-foreground mx-auto mb-3" />
-          <p className="font-semibold">Quiniela no encontrada</p>
+          <p className="font-semibold">{t("league.notFound")}</p>
         </div>
         <BottomNav />
       </div>
@@ -89,27 +91,25 @@ const LeaguePage = () => {
       <TopBar />
 
       <main className="max-w-lg mx-auto">
-        {/* League header */}
         <div className="bg-card border-b border-border px-4 py-5">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-foreground">{league.name}</h2>
               <p className="text-xs text-muted-foreground">
-                {members.length} miembros
-                {league.join_code ? ` · Código: ${league.join_code}` : ''}
+                {t("leagues.membersCount", { count: members.length })}
+                {league.join_code ? t("leagues.withCode", { code: league.join_code }) : ''}
               </p>
             </div>
-            <button className="p-2 hover:bg-secondary rounded-full transition-colors text-foreground" aria-label="Compartir">
+            <button className="p-2 hover:bg-secondary rounded-full transition-colors text-foreground" aria-label={t("league.share")}>
               <Share2 size={20} strokeWidth={2.25} />
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="flex border-b border-border bg-card">
           {(['tabla', 'miembros'] as const).map(tab => {
             const Icon = tab === 'tabla' ? BarChart3 : Users;
-            const label = tab === 'tabla' ? 'Tabla' : 'Miembros';
+            const label = tab === 'tabla' ? t("league.tabTable") : t("league.tabMembers");
             return (
               <button
                 key={tab}
@@ -127,12 +127,11 @@ const LeaguePage = () => {
           })}
         </div>
 
-        {/* Content */}
         {members.length === 0 ? (
           <div className="text-center py-12">
             <Users size={44} strokeWidth={2.25} className="text-muted-foreground mx-auto mb-3" />
-            <p className="font-semibold mb-1">Sin miembros aún</p>
-            <p className="text-sm text-muted-foreground">Comparte el código para invitar gente</p>
+            <p className="font-semibold mb-1">{t("league.noMembersTitle")}</p>
+            <p className="text-sm text-muted-foreground">{t("league.noMembersDesc")}</p>
           </div>
         ) : activeTab === 'tabla' ? (
           <div className="bg-card">
@@ -154,7 +153,7 @@ const LeaguePage = () => {
                 </div>
                 <div>
                   <p className="font-semibold text-sm">{member.display_name}</p>
-                  <p className="text-xs text-muted-foreground">{member.points_total} puntos totales</p>
+                  <p className="text-xs text-muted-foreground">{t("league.totalPoints", { n: member.points_total })}</p>
                 </div>
               </div>
             ))}
