@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface TopBarProps {
@@ -10,7 +11,8 @@ interface TopBarProps {
 const TopBar = ({ jornadaNumber = 10, firstKickoffUtc }: TopBarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { t } = useTranslation();
   const [countdown, setCountdown] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
 
@@ -46,12 +48,12 @@ const TopBar = ({ jornadaNumber = 10, firstKickoffUtc }: TopBarProps) => {
           className="text-lg font-bold tracking-tight cursor-pointer text-foreground"
           onClick={() => navigate('/')}
         >
-          FC Quiniela
+          {t('topbar.appName')}
         </h1>
 
         {isPicksPage && (
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-muted-foreground">Jornada {jornadaNumber}</span>
+            <span className="text-muted-foreground">{t('topbar.jornada', { number: jornadaNumber })}</span>
             {countdown && (
               <span className={`font-mono font-semibold ${isUrgent ? 'text-destructive' : 'text-primary'}`}>
                 {countdown}
@@ -66,7 +68,7 @@ const TopBar = ({ jornadaNumber = 10, firstKickoffUtc }: TopBarProps) => {
               onClick={() => navigate('/auth')}
               className="text-xs font-semibold bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-all"
             >
-              Entrar
+              {t('topbar.signIn')}
             </button>
           )}
         </div>

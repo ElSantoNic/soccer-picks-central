@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { TEAM_COLORS } from "@/lib/mockData";
 
 interface ResultCardProps {
@@ -9,11 +10,16 @@ interface ResultCardProps {
   isCorrect: boolean;
 }
 
-const pickLabels = { '1': 'Local', 'X': 'Empate', '2': 'Visitante' } as const;
-
 const ResultCard = ({ homeTeam, awayTeam, homeScore, awayScore, userPick, isCorrect }: ResultCardProps) => {
+  const { t } = useTranslation();
   const homeColor = TEAM_COLORS[homeTeam] || '#666';
   const awayColor = TEAM_COLORS[awayTeam] || '#666';
+
+  const pickLabels: Record<'1' | 'X' | '2', string> = {
+    '1': t('picks.labelLocal'),
+    'X': t('picks.labelDraw'),
+    '2': t('picks.labelAway'),
+  };
 
   return (
     <div className={`bg-card rounded-lg p-4 border ${isCorrect ? 'border-l-4 border-success' : 'border-l-4 border-destructive'}`}>
@@ -41,10 +47,10 @@ const ResultCard = ({ homeTeam, awayTeam, homeScore, awayScore, userPick, isCorr
 
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
         <span className="text-xs text-muted-foreground">
-          Tu pick: <span className="font-semibold text-foreground">{userPick ? pickLabels[userPick] : '—'}</span>
+          {t('results.yourPick')} <span className="font-semibold text-foreground">{userPick ? pickLabels[userPick] : '—'}</span>
         </span>
         <span className={`text-sm font-bold ${isCorrect ? 'text-success' : 'text-destructive'}`}>
-          {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
+          {isCorrect ? t('results.correct') : t('results.incorrect')}
         </span>
       </div>
     </div>

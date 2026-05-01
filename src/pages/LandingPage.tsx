@@ -1,15 +1,22 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Volleyball, Trophy, ClipboardList, CheckCircle2, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const LandingPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const steps: { step: string; Icon: LucideIcon; title: string; desc: string }[] = [
+    { step: "1", Icon: Volleyball, title: t("landing.step1Title"), desc: t("landing.step1Desc") },
+    { step: "2", Icon: Trophy, title: t("landing.step2Title"), desc: t("landing.step2Desc") },
+    { step: "3", Icon: ClipboardList, title: t("landing.step3Title"), desc: t("landing.step3Desc") },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="max-w-2xl mx-auto px-6 pt-24 pb-20 text-center">
           <motion.div
@@ -18,12 +25,12 @@ const LandingPage = () => {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight tracking-tight text-foreground mb-4">
-              Tu quiniela de{" "}
-              <span className="text-primary">Liga MX</span>
-              {" "}gratis y en familia
+              {t("landing.heroTitle1")}{" "}
+              <span className="text-primary">{t("landing.heroTitleHighlight")}</span>
+              {" "}{t("landing.heroTitle2")}
             </h1>
             <p className="text-lg sm:text-xl text-muted-foreground max-w-md mx-auto mb-10">
-              Haz tus pronósticos cada jornada, compite con tu familia y amigos, y demuestra quién sabe más de fútbol.
+              {t("landing.heroSubtitle")}
             </p>
           </motion.div>
 
@@ -37,29 +44,24 @@ const LandingPage = () => {
               onClick={() => navigate(user ? "/picks" : "/auth")}
               className="bg-primary text-primary-foreground font-semibold py-3.5 px-8 rounded-lg text-base hover:brightness-110 active:scale-[0.98] transition-all"
             >
-              {user ? "Hacer mis picks" : "Comenzar"}
+              {user ? t("landing.ctaMakePicks") : t("landing.ctaStart")}
             </button>
             <button
               onClick={() => navigate("/league/create")}
               className="border border-border text-foreground font-semibold py-3.5 px-8 rounded-lg text-base hover:bg-muted active:scale-[0.98] transition-all"
             >
-              Crear una quiniela
+              {t("landing.ctaCreateLeague")}
             </button>
           </motion.div>
         </div>
       </section>
 
-      {/* How it works */}
       <section className="max-w-2xl mx-auto px-6 py-16">
         <h2 className="text-2xl font-bold text-center mb-10 text-foreground">
-          ¿Cómo funciona?
+          {t("landing.howItWorks")}
         </h2>
         <div className="space-y-6">
-          {([
-            { step: "1", Icon: Volleyball, title: "Haz tus picks", desc: "Elige Local, Empate o Visitante para cada partido de la jornada." },
-            { step: "2", Icon: Trophy, title: "Compite con tu gente", desc: "Crea una liga privada y comparte el enlace por WhatsApp." },
-            { step: "3", Icon: ClipboardList, title: "Revisa los resultados", desc: "Gana puntos por cada pronóstico correcto y sube en la tabla." },
-          ] as { step: string; Icon: LucideIcon; title: string; desc: string }[]).map((item) => {
+          {steps.map((item) => {
             const Icon = item.Icon;
             return (
               <motion.div
@@ -83,23 +85,21 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Trust section */}
       <section className="border-y border-border">
         <div className="max-w-2xl mx-auto px-6 py-10 text-center">
           <div className="flex flex-wrap justify-center gap-6 text-sm font-medium text-muted-foreground">
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={16} strokeWidth={2.25} className="text-primary" /> Juego gratuito</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={16} strokeWidth={2.25} className="text-primary" /> Sin apuestas</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={16} strokeWidth={2.25} className="text-primary" /> Sin registro obligatorio</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={16} strokeWidth={2.25} className="text-primary" /> {t("landing.trustFree")}</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={16} strokeWidth={2.25} className="text-primary" /> {t("landing.trustNoBetting")}</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={16} strokeWidth={2.25} className="text-primary" /> {t("landing.trustNoSignup")}</span>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="max-w-2xl mx-auto px-6 py-8 text-center">
         <p className="text-xs text-muted-foreground">
-          FC Quiniela © 2026 ·{" "}
+          {t("landing.footer")} ·{" "}
           <button onClick={() => navigate("/about")} className="underline hover:text-foreground">
-            Acerca de
+            {t("landing.about")}
           </button>
         </p>
       </footer>

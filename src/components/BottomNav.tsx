@@ -1,11 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Volleyball, Trophy, ClipboardList, User, type LucideIcon } from "lucide-react";
 
-const tabs: { id: string; label: string; Icon: LucideIcon; path: string }[] = [
-  { id: 'picks', label: 'Picks', Icon: Volleyball, path: '/picks' },
-  { id: 'league', label: 'Quinielas', Icon: Trophy, path: '/leagues' },
-  { id: 'results', label: 'Resultados', Icon: ClipboardList, path: '/picks/results' },
-  { id: 'profile', label: 'Perfil', Icon: User, path: '/profile' },
+const tabs: { id: string; labelKey: string; Icon: LucideIcon; path: string }[] = [
+  { id: 'picks', labelKey: 'nav.picks', Icon: Volleyball, path: '/picks' },
+  { id: 'league', labelKey: 'nav.leagues', Icon: Trophy, path: '/leagues' },
+  { id: 'results', labelKey: 'nav.results', Icon: ClipboardList, path: '/picks/results' },
+  { id: 'profile', labelKey: 'nav.profile', Icon: User, path: '/profile' },
 ];
 
 const HIDDEN_ROUTES = ['/', '/auth', '/admin', '/about'];
@@ -13,6 +14,7 @@ const HIDDEN_ROUTES = ['/', '/auth', '/admin', '/about'];
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   if (HIDDEN_ROUTES.includes(location.pathname)) return null;
 
@@ -33,7 +35,7 @@ const BottomNav = () => {
               }`}
             >
               <Icon size={22} strokeWidth={2.25} />
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <span className="text-[10px] font-medium">{t(tab.labelKey)}</span>
             </button>
           );
         })}

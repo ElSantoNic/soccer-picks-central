@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Match, TEAM_COLORS } from "@/lib/mockData";
 
 interface MatchCardProps {
@@ -6,8 +7,6 @@ interface MatchCardProps {
   isLocked: boolean;
   onPickChange: (matchId: string, pick: '1' | 'X' | '2') => void;
 }
-
-const pickLabels = { '1': 'Local', 'X': 'Empate', '2': 'Visitante' } as const;
 
 const TeamBadge = ({ team }: { team: string }) => {
   const color = TEAM_COLORS[team] || '#666';
@@ -25,9 +24,17 @@ const TeamBadge = ({ team }: { team: string }) => {
 };
 
 const MatchCard = ({ match, currentPick, isLocked, onPickChange }: MatchCardProps) => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith("en") ? "en-US" : "es-MX";
   const kickoff = new Date(match.kickoff_utc);
-  const timeStr = kickoff.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-  const dateStr = kickoff.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+  const timeStr = kickoff.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  const dateStr = kickoff.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+
+  const pickLabels: Record<'1' | 'X' | '2', string> = {
+    '1': t('picks.labelLocal'),
+    'X': t('picks.labelDraw'),
+    '2': t('picks.labelAway'),
+  };
 
   return (
     <div className={`bg-card rounded-lg p-4 transition-all border border-border ${isLocked ? 'opacity-75' : ''}`}>

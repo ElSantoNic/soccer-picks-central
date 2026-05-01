@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +18,7 @@ type Step = "input" | "otp";
 const LoginPage = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (session) navigate("/picks", { replace: true });
@@ -30,7 +32,6 @@ const LoginPage = () => {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Setup-password modal state
   const [setupOpen, setSetupOpen] = useState(false);
   const [setupEmail, setSetupEmail] = useState("");
   const [setupPassword, setSetupPassword] = useState("");
@@ -39,7 +40,7 @@ const LoginPage = () => {
 
   const handlePasswordLogin = async () => {
     if (!email.trim() || !password) {
-      toast.error("Ingresa correo y contraseña");
+      toast.error(t("auth.errEmailPassword"));
       return;
     }
     setLoading(true);
@@ -49,10 +50,10 @@ const LoginPage = () => {
         password,
       });
       if (error) throw error;
-      toast.success("¡Bienvenido!");
+      toast.success(t("auth.okWelcome"));
       navigate("/picks");
     } catch (err: any) {
-      toast.error(err.message || "Credenciales incorrectas");
+      toast.error(err.message || t("auth.errInvalidCreds"));
     } finally {
       setLoading(false);
     }
@@ -66,9 +67,8 @@ const LoginPage = () => {
         options: { redirectTo: `${window.location.origin}/picks` },
       });
       if (error) throw error;
-      // Redirect happens in-browser; no further state update needed.
     } catch (err: any) {
-      toast.error(err.message || "Error al iniciar sesión con Google");
+      toast.error(err.message || t("auth.errGoogle"));
       setLoading(false);
     }
   };
@@ -78,7 +78,7 @@ const LoginPage = () => {
     try {
       if (method === "email") {
         if (!email.trim()) {
-          toast.error("Ingresa tu correo electrónico");
+          toast.error(t("auth.errEmailRequired"));
           return;
         }
         const { error } = await supabase.auth.signInWithOtp({
@@ -89,21 +89,21 @@ const LoginPage = () => {
           },
         });
         if (error) throw error;
-        toast.success("¡Código enviado a tu correo!");
+        toast.success(t("auth.okEmailSent"));
       } else {
         const cleanPhone = phone.trim().replace(/\s/g, "");
         if (!cleanPhone || cleanPhone.length < 10) {
-          toast.error("Ingresa un número de teléfono válido");
+          toast.error(t("auth.errPhoneInvalid"));
           return;
         }
         const fullPhone = cleanPhone.startsWith("+") ? cleanPhone : `+${cleanPhone}`;
         const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
         if (error) throw error;
-        toast.success("¡Código enviado por SMS!");
+        toast.success(t("auth.okSmsSent"));
       }
       setStep("otp");
     } catch (err: any) {
-      toast.error(err.message || "Error al enviar código");
+      toast.error(err.message || t("auth.errSendCode"));
     } finally {
       setLoading(false);
     }
@@ -111,7 +111,7 @@ const LoginPage = () => {
 
   const handleVerifyOtp = async () => {
     if (otp.length !== 6) {
-      toast.error("Ingresa el código de 6 dígitos");
+      toast.error(t("auth.errOtpLength"));
       return;
     }
     setLoading(true);
@@ -123,10 +123,10 @@ const LoginPage = () => {
 
       const { error } = await supabase.auth.verifyOtp(params);
       if (error) throw error;
-      toast.success("¡Bienvenido!");
+      toast.success(t("auth.okWelcome"));
       navigate("/picks");
     } catch (err: any) {
-      toast.error(err.message || "Código incorrecto");
+      toast.error(err.message || t("auth.errOtpInvalid"));
     } finally {
       setLoading(false);
     }
@@ -134,11 +134,11 @@ const LoginPage = () => {
 
   const handleSetupPassword = async () => {
     if (!setupEmail.trim() || !setupPassword || !setupSecret) {
-      toast.error("Completa todos los campos");
+      toast.error(t("auth.errCompleteFields"));
       return;
     }
     if (setupPassword.length < 8) {
-      toast.error("La contraseña debe tener al menos 8 caracteres");
+      toast.error(t("auth.errPasswordLength"));
       return;
     }
     setSetupLoading(true);
@@ -153,7 +153,7 @@ const LoginPage = () => {
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
 
-      toast.success("¡Contraseña configurada! Inicia sesión.");
+      toast.success(t("auth.okPasswordSet"));
       setMethod("password");
       setEmail(setupEmail.trim());
       setPassword(setupPassword);
@@ -161,7 +161,7 @@ const LoginPage = () => {
       setSetupSecret("");
       setSetupPassword("");
     } catch (err: any) {
-      toast.error(err.message || "Error al configurar contraseña");
+      toast.error(err.message || t("auth.errSetupPassword"));
     } finally {
       setSetupLoading(false);
     }
@@ -171,8 +171,8 @@ const LoginPage = () => {
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">FC Quiniela</h1>
-          <p className="text-muted-foreground text-sm">Inicia sesión para guardar tus picks y competir</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("topbar.appName")}</h1>
+          <p className="text-muted-foreground text-sm">{t("auth.subtitle")}</p>
         </div>
 
         <div className="bg-card rounded-2xl p-6 border border-border">
@@ -185,7 +185,7 @@ const LoginPage = () => {
                     method === "email" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                   }`}
                 >
-                  📧 Correo
+                  {t("auth.tabEmail")}
                 </button>
                 <button
                   onClick={() => setMethod("phone")}
@@ -193,7 +193,7 @@ const LoginPage = () => {
                     method === "phone" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                   }`}
                 >
-                  📱 SMS
+                  {t("auth.tabSms")}
                 </button>
                 <button
                   onClick={() => setMethod("password")}
@@ -201,18 +201,18 @@ const LoginPage = () => {
                     method === "password" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                   }`}
                 >
-                  🔑 Clave
+                  {t("auth.tabPassword")}
                 </button>
               </div>
 
               {method === "email" && (
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Correo electrónico</label>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.labelEmail")}</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tu@correo.com"
+                    placeholder={t("auth.placeholderEmail")}
                     className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
                   />
@@ -222,13 +222,13 @@ const LoginPage = () => {
               {method === "phone" && (
                 <div>
                   <label className="text-xs text-muted-foreground mb-1.5 block">
-                    Número de teléfono (con código de país)
+                    {t("auth.labelPhone")}
                   </label>
                   <input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+521234567890"
+                    placeholder={t("auth.placeholderPhone")}
                     className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
                   />
@@ -238,22 +238,22 @@ const LoginPage = () => {
               {method === "password" && (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Correo electrónico</label>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.labelEmail")}</label>
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="tu@correo.com"
+                      placeholder={t("auth.placeholderEmail")}
                       className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Contraseña</label>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.labelPassword")}</label>
                     <input
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder={t("auth.placeholderPassword")}
                       className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
                     />
@@ -268,16 +268,16 @@ const LoginPage = () => {
               >
                 {loading
                   ? method === "password"
-                    ? "Iniciando..."
-                    : "Enviando..."
+                    ? t("auth.btnSigningIn")
+                    : t("auth.btnSending")
                   : method === "password"
-                    ? "Iniciar sesión"
-                    : "Enviar código"}
+                    ? t("auth.btnSignIn")
+                    : t("auth.btnSendCode")}
               </button>
 
               <div className="flex items-center gap-3 my-5">
                 <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground">o también</span>
+                <span className="text-xs text-muted-foreground">{t("auth.orAlso")}</span>
                 <div className="flex-1 h-px bg-border" />
               </div>
 
@@ -292,7 +292,7 @@ const LoginPage = () => {
                   <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
                   <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
                 </svg>
-                Continuar con Google
+                {t("auth.continueGoogle")}
               </button>
 
               {method === "password" && (
@@ -300,7 +300,7 @@ const LoginPage = () => {
                   onClick={() => setSetupOpen(true)}
                   className="w-full mt-3 py-2 text-xs text-primary hover:underline transition-colors"
                 >
-                  ¿Primera vez? Configurar contraseña
+                  {t("auth.firstTimePassword")}
                 </button>
               )}
 
@@ -308,13 +308,13 @@ const LoginPage = () => {
                 onClick={() => navigate("/picks")}
                 className="w-full mt-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Continuar sin cuenta →
+                {t("auth.continueWithoutAccount")}
               </button>
             </>
           ) : (
             <>
               <p className="text-sm text-muted-foreground mb-4 text-center">
-                Ingresa el código de 6 dígitos enviado a{" "}
+                {t("auth.otpPrompt")}{" "}
                 <span className="font-semibold text-foreground">
                   {method === "email" ? email : phone}
                 </span>
@@ -336,35 +336,35 @@ const LoginPage = () => {
                 disabled={loading}
                 className="w-full mt-4 py-3 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
               >
-                {loading ? "Verificando..." : "Verificar"}
+                {loading ? t("auth.verifying") : t("auth.verify")}
               </button>
 
               <button
                 onClick={() => { setStep("input"); setOtp(""); }}
                 className="w-full mt-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                ← Cambiar {method === "email" ? "correo" : "número"}
+                {method === "email" ? t("auth.changeEmail") : t("auth.changePhone")}
               </button>
             </>
           )}
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Sin contraseñas. Solo un código de verificación.
+          {t("auth.tagline")}
         </p>
       </div>
 
       <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Configurar contraseña</DialogTitle>
+            <DialogTitle>{t("auth.setupTitle")}</DialogTitle>
             <DialogDescription>
-              Solo disponible para el correo autorizado. Necesitas el secret de configuración.
+              {t("auth.setupDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Correo</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.labelEmail")}</label>
               <input
                 type="email"
                 value={setupEmail}
@@ -373,17 +373,17 @@ const LoginPage = () => {
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Nueva contraseña (mín 8)</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.setupNewPassword")}</label>
               <input
                 type="password"
                 value={setupPassword}
                 onChange={(e) => setSetupPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder={t("auth.placeholderPassword")}
                 className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Setup secret</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.setupSecret")}</label>
               <input
                 type="password"
                 value={setupSecret}
@@ -397,7 +397,7 @@ const LoginPage = () => {
               disabled={setupLoading}
               className="w-full mt-2 py-3 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
             >
-              {setupLoading ? "Configurando..." : "Configurar contraseña"}
+              {setupLoading ? t("auth.settingUp") : t("auth.setupSubmit")}
             </button>
           </div>
         </DialogContent>

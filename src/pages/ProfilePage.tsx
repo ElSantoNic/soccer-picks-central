@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { MessageCircle, HelpCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,12 +12,14 @@ import { toast } from "sonner";
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
+  const { t, i18n } = useTranslation();
   const [displayName, setDisplayName] = useState("");
-  const [lang, setLang] = useState<"es" | "en">("es");
   const [phoneInput, setPhoneInput] = useState("");
   const [showPhoneInput, setShowPhoneInput] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
   const [savingChannel, setSavingChannel] = useState(false);
+
+  const currentLang = (i18n.resolvedLanguage || i18n.language || "es").startsWith("en") ? "en" : "es";
 
   useEffect(() => {
     if (!loading && !user) {
@@ -37,7 +40,7 @@ const ProfilePage = () => {
       .update({ display_name: displayName.trim() })
       .eq("user_id", user.id);
     if (!error) {
-      toast.success("Nombre guardado");
+      toast.success(t("profile.okNameSaved"));
       refreshProfile();
     }
   };
@@ -46,7 +49,7 @@ const ProfilePage = () => {
     if (!user) return;
     const cleaned = phoneInput.trim().replace(/\s/g, "");
     if (cleaned.length < 10) {
-      toast.error("Ingresa un número válido");
+      toast.error(t("profile.errPhoneInvalid"));
       return;
     }
     const fullPhone = cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
@@ -57,10 +60,10 @@ const ProfilePage = () => {
       .eq("user_id", user.id);
     setSavingPhone(false);
     if (error) {
-      toast.error(error.message || "No se pudo guardar el número");
+      toast.error(error.message || t("profile.errPhoneSave"));
       return;
     }
-    toast.success("¡Número guardado! Recibirás recordatorios por WhatsApp.");
+    toast.success(t("profile.okPhoneSaved"));
     setShowPhoneInput(false);
     setPhoneInput("");
     refreshProfile();
@@ -76,7 +79,7 @@ const ProfilePage = () => {
       .eq("user_id", user.id);
     setSavingChannel(false);
     if (error) {
-      toast.error("No se pudo actualizar la preferencia");
+      toast.error(t("profile.errChannel"));
       return;
     }
     refreshProfile();
@@ -87,11 +90,15 @@ const ProfilePage = () => {
     navigate("/");
   };
 
+  const handleChangeLang = (l: "es" | "en") => {
+    i18n.changeLanguage(l);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen pb-20 bg-background">
         <TopBar />
-        <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">Cargando...</div>
+        <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">{t("common.loading")}</div>
         <BottomNav />
       </div>
     );
@@ -113,10 +120,10 @@ const ProfilePage = () => {
       <TopBar />
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <section>
-          <h2 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-wider">Perfil</h2>
+          <h2 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-wider">{t("profile.section")}</h2>
           <div className="bg-card rounded-xl p-4 space-y-4 border border-border">
             <div>
-              <label className="text-xs text-muted-foreground">Nombre</label>
+              <label className="text-xs text-muted-foreground">{t("profile.name")}</label>
               <input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
@@ -126,19 +133,19 @@ const ProfilePage = () => {
             </div>
             <div>
               <label className="text-xs text-muted-foreground">
-                {user.email ? "Correo" : "Teléfono"}
+                {user.email ? t("profile.email") : t("profile.phone")}
               </label>
               <p className="text-sm font-medium mt-1">{maskedContact}</p>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Idioma</span>
+              <span className="text-sm font-medium">{t("profile.language")}</span>
               <div className="flex bg-secondary rounded-lg overflow-hidden">
                 {(["es", "en"] as const).map((l) => (
                   <button
                     key={l}
-                    onClick={() => setLang(l)}
+                    onClick={() => handleChangeLang(l)}
                     className={`px-4 py-1.5 text-xs font-semibold transition-colors ${
-                      lang === l ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                      currentLang === l ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                     }`}
                   >
                     {l.toUpperCase()}
@@ -156,7 +163,7 @@ const ProfilePage = () => {
                 <MessageCircle size={24} strokeWidth={2.25} className="text-primary shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">
-                    Agrega tu número de WhatsApp para recibir recordatorios de la jornada.
+                    {t("profile.addPhonePrompt")}
                   </p>
                   {showPhoneInput ? (
                     <div className="mt-3 space-y-2">
@@ -173,13 +180,13 @@ const ProfilePage = () => {
                           disabled={savingPhone}
                           className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-xs hover:bg-primary/90 transition-colors disabled:opacity-50"
                         >
-                          {savingPhone ? "Guardando..." : "Guardar"}
+                          {savingPhone ? t("profile.savingPhone") : t("common.save")}
                         </button>
                         <button
                           onClick={() => { setShowPhoneInput(false); setPhoneInput(""); }}
                           className="px-4 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors"
                         >
-                          Cancelar
+                          {t("common.cancel")}
                         </button>
                       </div>
                     </div>
@@ -188,7 +195,7 @@ const ProfilePage = () => {
                       onClick={() => setShowPhoneInput(true)}
                       className="mt-3 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-xs hover:bg-primary/90 transition-colors"
                     >
-                      Agregar número
+                      {t("profile.addPhone")}
                     </button>
                   )}
                 </div>
@@ -199,14 +206,14 @@ const ProfilePage = () => {
 
         <section>
           <h2 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-wider">
-            Avisos y recordatorios
+            {t("profile.remindersTitle")}
           </h2>
           <div className="bg-card rounded-xl p-4 border border-border">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <span className="text-sm font-medium block">Recordatorio por WhatsApp</span>
+                <span className="text-sm font-medium block">{t("profile.whatsappReminder")}</span>
                 {!hasPhone && (
-                  <span className="text-xs text-muted-foreground">Agrega un número para activarlo</span>
+                  <span className="text-xs text-muted-foreground">{t("profile.addPhoneToActivate")}</span>
                 )}
               </div>
               <button
@@ -227,7 +234,7 @@ const ProfilePage = () => {
         </section>
 
         <section>
-          <h2 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-wider">Mis logros</h2>
+          <h2 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-wider">{t("profile.achievements")}</h2>
           <div className="grid grid-cols-3 gap-3">
             {BADGE_DEFINITIONS.map((badge) => {
               const isEarned = false;
@@ -254,7 +261,7 @@ const ProfilePage = () => {
           onClick={handleSignOut}
           className="w-full py-3 text-destructive font-semibold text-sm rounded-lg border border-destructive/30 hover:bg-destructive/5 transition-colors"
         >
-          Cerrar sesión
+          {t("profile.signOut")}
         </button>
       </main>
       <BottomNav />
