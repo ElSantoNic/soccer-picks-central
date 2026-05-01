@@ -17,9 +17,10 @@ import {
 interface League {
   id: string;
   name: string;
-  join_code: string;
+  join_code: string | null;
   description: string | null;
   created_at: string;
+  created_by: string | null;
   member_count?: number;
 }
 
@@ -40,7 +41,7 @@ const LeaguesListPage = () => {
   const fetchLeagues = async () => {
     const { data, error } = await supabase
       .from('leagues')
-      .select('id, name, join_code, description, created_at')
+      .select('id, name, description, created_at, created_by')
       .order('created_at', { ascending: false });
 
     if (!error && data) {
@@ -50,7 +51,16 @@ const LeaguesListPage = () => {
             .from('league_members')
             .select('*', { count: 'exact', head: true })
             .eq('league_id', league.id);
-          return { ...league, member_count: count ?? 0 };
+
+          // Only the creator can see the join_code.
+          let join_code: string | null = null;
+          if (user && league.created_by === user.id) {
+            const { data: codeData } = await supabase
+              .rpc('get_league_join_code', { _league_id: league.id });
+            join_code = (codeData as string | null) ?? null;
+          }
+
+          return { ...league, join_code, member_count: count ?? 0 };
         })
       );
       setLeagues(leaguesWithCounts);
@@ -104,7 +114,9 @@ const LeaguesListPage = () => {
 
       setJoinCode('');
       setAlreadyMember(isAlreadyMember);
-      setJoinedLeague({ id: league.id, name: league.name, join_code: league.join_code });
+      // Show the code the user just entered — confirms membership without
+      // exposing the canonical join_code to non-creators server-side.
+      setJoinedLeague({ id: league.id, name: league.name, join_code: code });
       fetchLeagues();
     } finally {
       setJoining(false);
@@ -164,7 +176,8 @@ const LeaguesListPage = () => {
                   <div>
                     <p className="font-bold text-sm">{league.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {league.member_count} miembros · Código: {league.join_code}
+                      {league.member_count} miembros
+                      {league.join_code ? ` · Código: ${league.join_code}` : ''}
                     </p>
                   </div>
                   <span className="text-muted-foreground text-lg">→</span>
