@@ -1,59 +1,37 @@
-## Current state
+## Goal
+Let league creators (admins) remove members from their league.
 
-The toggle in `src/pages/ProfilePage.tsx` is just local `useState` — clicking it flips a variable that nothing reads. There is **no i18n setup at all** in the project:
+## Database changes
+The `league_members` table currently has no DELETE policy, so nobody can delete rows. Add a migration:
 
-- No translation library installed
-- No translation files (no `en.json` / `es.json`)
-- Every UI string across all pages is hardcoded in Spanish ("Jornada", "Mis ligas", "Cerrar sesión", etc.)
-- No language column on the `profiles` table — the choice wouldn't survive a refresh
+1. **RLS DELETE policy** on `league_members`:
+   - Allow delete when `auth.uid() = (SELECT created_by FROM leagues WHERE id = league_members.league_id)`
+   - Prevent the creator from removing themselves (optional safeguard): `AND user_id IS DISTINCT FROM (SELECT created_by FROM leagues WHERE id = league_members.league_id)`
+2. **Cascade cleanup (optional, recommended)**: When a member is removed, their picks remain (they belong to the user globally, not the league), so no extra cleanup needed. Points on `league_members` are deleted with the row — fine.
 
-So "make the toggle functional" is really three pieces of work. I'd recommend doing them in order, and we can stop after any step.
+## UI changes (`src/pages/LeaguePage.tsx`)
+1. Determine `isCreator = user?.id === league.created_by`.
+2. In the **Miembros** tab, show a small "Remove" (trash icon) button on each member row, only when `isCreator` is true and the member is not the creator themselves.
+3. On click, open a confirmation `AlertDialog` ("Remove {display_name} from {league.name}?").
+4. On confirm: `supabase.from('league_members').delete().eq('id', member.id)`, then update local state and toast success/error.
+5. Also add a remove control on the **Tabla** tab via `LeaderboardRow` — out of scope to keep change minimal; admins can switch to Miembros tab to remove.
 
-## What needs to happen
+## i18n keys to add (`es.json` + `en.json`)
+- `league.removeMember` — "Eliminar" / "Remove"
+- `league.removeConfirmTitle` — "¿Eliminar miembro?" / "Remove member?"
+- `league.removeConfirmDesc` — "{{name}} ya no formará parte de {{league}}." / "{{name}} will no longer be part of {{league}}."
+- `league.removeSuccess` — "Miembro eliminado" / "Member removed"
+- `league.removeError` — "No se pudo eliminar al miembro" / "Could not remove member"
+- `common.cancel`, `common.confirm` (reuse if existing)
 
-### Step 1 — Wire up an i18n system (foundation)
+## Technical notes
+- Use existing `AlertDialog` from `@/components/ui/alert-dialog`.
+- Use `Trash2` icon from `lucide-react`.
+- Toast via existing `use-toast` hook (already used elsewhere).
+- After successful delete, filter `members` state to drop the removed row — no refetch needed.
+- The creator row is hidden from the remove control to prevent accidental self-removal (DB policy also blocks it as defense in depth).
 
-- Install `react-i18next` + `i18next` (the standard React i18n stack, lightweight, no backend needed).
-- Create a `LanguageProvider` (or just an i18next init file) loaded in `src/main.tsx` so every component can call `t("some.key")`.
-- Create two translation files: `src/i18n/es.json` and `src/i18n/en.json`.
-- Replace the local `useState` in `ProfilePage` with the global language from i18next, so clicking the toggle actually changes the active language.
-- Persist the choice to `localStorage` so it survives refresh for logged-out users too.
-
-After this step, the toggle "works" technically — but nothing visibly changes yet because no strings have been translated.
-
-### Step 2 — Translate the UI strings
-
-Walk through each page/component and replace hardcoded Spanish with `t("key")` calls, adding both Spanish and English entries to the JSON files. Scope:
-
-- `BottomNav`, `TopBar`
-- `LandingPage`, `LoginPage`
-- `PicksPage`, `ResultsPage`, `MatchCard`, `ResultCard`
-- `LeaguesListPage`, `LeaguePage`, `CreateLeaguePage`, `LeaderboardRow`
-- `ProfilePage`, `AboutPage`
-- `AdminPage` (lower priority — admin-only)
-- Toast messages (`toast.success("Nombre guardado")` etc.)
-
-This is the bulk of the work — probably ~150–250 strings. We can do it all at once or page-by-page.
-
-**Not translated** (intentionally): team names, jornada numbers, user-generated content (league names, display names).
-
-### Step 3 — Persist preference per user (optional polish)
-
-- Add a `language` column to the `profiles` table (default `'es'`).
-- On login, read `profile.language` and set i18next accordingly.
-- On toggle, save back to the profile (in addition to `localStorage`).
-
-Without this, the language is per-device. With it, the user's choice follows them across devices.
-
-## Technical details
-
-- **Library**: `react-i18next` — battle-tested, tiny, hook-based (`const { t, i18n } = useTranslation()`).
-- **Key structure**: namespace by feature, e.g. `profile.signOut`, `picks.lockCountdown`, `nav.leagues`. Keeps the JSON files navigable.
-- **Default language**: `es` (current behavior). English is the alternate.
-- **Date/number formatting**: i18next handles this via `Intl` — match dates and countdowns will format correctly per locale once we use the formatter helpers.
-
-## Recommended scope for this round
-
-I'd suggest **Step 1 + Step 2** together so the toggle visibly does something the moment we ship. Step 3 (DB persistence) can come later — `localStorage` is enough for a single-device pick'em app and avoids a migration right now.
-
-Let me know if you want all three, just 1+2, or just Step 1 (foundation only, then translate gradually).
+## Files touched
+- New migration: add DELETE policy on `league_members`.
+- `src/pages/LeaguePage.tsx` — add remove UI + handler.
+- `src/i18n/locales/es.json`, `src/i18n/locales/en.json` — new strings.
