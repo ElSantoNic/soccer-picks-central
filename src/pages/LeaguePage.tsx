@@ -1,12 +1,23 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Frown, Share2, BarChart3, Users } from "lucide-react";
+import { Frown, Share2, BarChart3, Users, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import LeaderboardRow from "@/components/LeaderboardRow";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface LeagueMember {
   id: string;
@@ -30,10 +41,13 @@ const LeaguePage = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [memberToRemove, setMemberToRemove] = useState<LeagueMember | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     if (!leagueId) return;
@@ -60,6 +74,26 @@ const LeaguePage = () => {
     };
     fetchData();
   }, [leagueId, user]);
+
+  const isCreator = !!user && !!league && user.id === league.created_by;
+
+  const handleConfirmRemove = async () => {
+    if (!memberToRemove) return;
+    setRemoving(true);
+    const { error } = await supabase
+      .from('league_members')
+      .delete()
+      .eq('id', memberToRemove.id);
+    setRemoving(false);
+
+    if (error) {
+      toast({ title: t("league.removeError"), variant: "destructive" });
+      return;
+    }
+    setMembers(prev => prev.filter(m => m.id !== memberToRemove.id));
+    toast({ title: t("league.removeSuccess") });
+    setMemberToRemove(null);
+  };
 
   const sorted = [...members].sort((a, b) => b.points_total - a.points_total);
 
@@ -146,20 +180,56 @@ const LeaguePage = () => {
           </div>
         ) : (
           <div className="p-4 space-y-3">
-            {members.map(member => (
-              <div key={member.id} className="flex items-center gap-3 bg-card p-3 rounded-lg border border-border">
-                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xl">
-                  {member.avatar_emoji}
+            {members.map(member => {
+              const canRemove = isCreator && member.user_id !== league.created_by;
+              return (
+                <div key={member.id} className="flex items-center gap-3 bg-card p-3 rounded-lg border border-border">
+                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xl">
+                    {member.avatar_emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{member.display_name}</p>
+                    <p className="text-xs text-muted-foreground">{t("league.totalPoints", { n: member.points_total })}</p>
+                  </div>
+                  {canRemove && (
+                    <button
+                      onClick={() => setMemberToRemove(member)}
+                      className="p-2 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      aria-label={t("league.removeMember")}
+                    >
+                      <Trash2 size={18} strokeWidth={2.25} />
+                    </button>
+                  )}
                 </div>
-                <div>
-                  <p className="font-semibold text-sm">{member.display_name}</p>
-                  <p className="text-xs text-muted-foreground">{t("league.totalPoints", { n: member.points_total })}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
+
+      <AlertDialog open={!!memberToRemove} onOpenChange={(open) => !open && setMemberToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("league.removeConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("league.removeConfirmDesc", {
+                name: memberToRemove?.display_name ?? '',
+                league: league.name,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removing}>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleConfirmRemove(); }}
+              disabled={removing}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("league.removeMember")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNav />
     </div>
