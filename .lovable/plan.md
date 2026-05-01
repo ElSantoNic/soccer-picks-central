@@ -1,17 +1,59 @@
-## Goal
+## Current state
 
-Remove the redundant avatar/ball button from the top-right of the header. Profile access is already handled by the **Perfil** tab in the bottom nav.
+The toggle in `src/pages/ProfilePage.tsx` is just local `useState` — clicking it flips a variable that nothing reads. There is **no i18n setup at all** in the project:
 
-## Change
+- No translation library installed
+- No translation files (no `en.json` / `es.json`)
+- Every UI string across all pages is hardcoded in Spanish ("Jornada", "Mis ligas", "Cerrar sesión", etc.)
+- No language column on the `profiles` table — the choice wouldn't survive a refresh
 
-**`src/components/TopBar.tsx`** — In the right-side container (lines ~64-80):
+So "make the toggle functional" is really three pieces of work. I'd recommend doing them in order, and we can stop after any step.
 
-- **Logged-in users**: remove the avatar `<button>` entirely. The right side renders nothing (the Jornada/countdown info on `/picks` stays where it is in the middle).
-- **Logged-out users**: keep the existing **"Entrar"** button — it's a meaningful CTA, not a duplicate of bottom-nav functionality (the bottom nav is hidden on `/auth` and the landing page anyway).
+## What needs to happen
 
-Result: cleaner, less cluttered header. Single, unambiguous path to profile (bottom nav).
+### Step 1 — Wire up an i18n system (foundation)
 
-## Not changing
+- Install `react-i18next` + `i18next` (the standard React i18n stack, lightweight, no backend needed).
+- Create a `LanguageProvider` (or just an i18next init file) loaded in `src/main.tsx` so every component can call `t("some.key")`.
+- Create two translation files: `src/i18n/es.json` and `src/i18n/en.json`.
+- Replace the local `useState` in `ProfilePage` with the global language from i18next, so clicking the toggle actually changes the active language.
+- Persist the choice to `localStorage` so it survives refresh for logged-out users too.
 
-- `profile.avatar_emoji` field stays in the database — harmless, and we may surface it later (e.g., next to the user's name on leaderboards) if you want a personality touch somewhere non-redundant.
-- Bottom nav, all other icon work from previous step.
+After this step, the toggle "works" technically — but nothing visibly changes yet because no strings have been translated.
+
+### Step 2 — Translate the UI strings
+
+Walk through each page/component and replace hardcoded Spanish with `t("key")` calls, adding both Spanish and English entries to the JSON files. Scope:
+
+- `BottomNav`, `TopBar`
+- `LandingPage`, `LoginPage`
+- `PicksPage`, `ResultsPage`, `MatchCard`, `ResultCard`
+- `LeaguesListPage`, `LeaguePage`, `CreateLeaguePage`, `LeaderboardRow`
+- `ProfilePage`, `AboutPage`
+- `AdminPage` (lower priority — admin-only)
+- Toast messages (`toast.success("Nombre guardado")` etc.)
+
+This is the bulk of the work — probably ~150–250 strings. We can do it all at once or page-by-page.
+
+**Not translated** (intentionally): team names, jornada numbers, user-generated content (league names, display names).
+
+### Step 3 — Persist preference per user (optional polish)
+
+- Add a `language` column to the `profiles` table (default `'es'`).
+- On login, read `profile.language` and set i18next accordingly.
+- On toggle, save back to the profile (in addition to `localStorage`).
+
+Without this, the language is per-device. With it, the user's choice follows them across devices.
+
+## Technical details
+
+- **Library**: `react-i18next` — battle-tested, tiny, hook-based (`const { t, i18n } = useTranslation()`).
+- **Key structure**: namespace by feature, e.g. `profile.signOut`, `picks.lockCountdown`, `nav.leagues`. Keeps the JSON files navigable.
+- **Default language**: `es` (current behavior). English is the alternate.
+- **Date/number formatting**: i18next handles this via `Intl` — match dates and countdowns will format correctly per locale once we use the formatter helpers.
+
+## Recommended scope for this round
+
+I'd suggest **Step 1 + Step 2** together so the toggle visibly does something the moment we ship. Step 3 (DB persistence) can come later — `localStorage` is enough for a single-device pick'em app and avoids a migration right now.
+
+Let me know if you want all three, just 1+2, or just Step 1 (foundation only, then translate gradually).
