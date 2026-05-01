@@ -292,6 +292,7 @@ export type Database = {
           name: string
         }[]
       }
+      get_league_join_code: { Args: { _league_id: string }; Returns: string }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
