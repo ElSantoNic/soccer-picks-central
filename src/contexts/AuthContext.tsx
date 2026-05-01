@@ -8,6 +8,8 @@ interface Profile {
   display_name: string | null;
   avatar_emoji: string;
   phone: string | null;
+  email: string | null;
+  notification_channel: string;
 }
 
 interface AuthContextType {
