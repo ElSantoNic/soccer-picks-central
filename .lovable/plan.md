@@ -1,69 +1,62 @@
-## Problem
+## Goal
 
-`league_members.display_name` is a snapshot copied from `profiles.display_name` when a user creates or joins a league. Updating the name in Profile only writes to `profiles`, so league rosters keep showing the old name. The `prevent_league_member_points_tampering` trigger also blocks the user from updating their own `league_members.display_name` directly.
+Replace decorative emojis used as **UI icons** with consistently-styled Lucide React line icons (matching the Adobe red-line look from the reference). Keep emojis where they represent **personality / gamification** (user avatar, badge rewards) — those aren't UI icons.
 
-## Fix
+## Icon mapping
 
-Make `profiles.display_name` the source of truth and propagate changes via a trigger.
+| Concept | Today | New (Lucide) |
+|---|---|---|
+| Picks / soccer ball | ⚽ | `Volleyball` |
+| Quiniela / league / trophy | 🏆 | `Trophy` |
+| Results / clipboard | 📋 | `ClipboardList` |
+| Profile tab | 👤 | `User` |
+| Members | 👥 | `Users` |
+| Stats / chart (future team stats) | 📊 | `BarChart3` |
+| WhatsApp/chat | 💬 | `MessageCircle` |
+| Share | 📤 | `Share2` |
+| Copy link | 📋 | `Copy` |
+| Celebrate | 🎉 | `PartyPopper` |
+| Empty/sad | 😕 | `Frown` |
+| Checkmark bullets | ✅ | `CheckCircle2` |
+| Admin: matches/calendar/stadium | ⚽📅🏟️ | `Volleyball` / `CalendarDays` / `Building2` |
 
-### 1. Database migration
+Style for all: `strokeWidth={2.25}`, color via Tailwind semantic tokens (`text-primary`, `text-muted-foreground`, `text-destructive`), size scaled to context (16–48). No hardcoded hex colors.
 
-Create a `SECURITY DEFINER` function + trigger on `profiles`:
+## Files to change
 
-```sql
-CREATE OR REPLACE FUNCTION public.sync_league_member_display_name()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF NEW.display_name IS DISTINCT FROM OLD.display_name
-     AND NEW.display_name IS NOT NULL
-     AND length(trim(NEW.display_name)) > 0 THEN
-    UPDATE public.league_members
-    SET display_name = NEW.display_name
-    WHERE user_id = NEW.user_id;
-  END IF;
-  RETURN NEW;
-END;
-$$;
+1. **`src/components/BottomNav.tsx`** — swap emoji map for Lucide icons (`Volleyball`, `Trophy`, `ClipboardList`, `User`); render `<Icon size={22} strokeWidth={2.25} />` instead of `<span>{emoji}</span>`.
 
-CREATE TRIGGER profiles_sync_league_member_display_name
-AFTER UPDATE OF display_name ON public.profiles
-FOR EACH ROW
-EXECUTE FUNCTION public.sync_league_member_display_name();
-```
+2. **`src/pages/LandingPage.tsx`** — "How it works" cards use `Volleyball` / `Trophy` / `ClipboardList` inside the `bg-primary/10` circle with `text-primary`; trust bullets use `CheckCircle2`.
 
-The function runs as definer, so the existing `prevent_league_member_points_tampering` trigger sees `auth.uid()` as the calling user — but that trigger already short-circuits when the new value matches the old; here we deliberately change `display_name`, which the tampering trigger blocks. Fix by short-circuiting tampering checks for elevated/system contexts only when the calling function is the sync trigger. Cleanest approach: have the sync function temporarily set a session GUC (e.g. `SET LOCAL app.system_write = 'on'`) and update the tampering trigger to allow `display_name` changes when that GUC is set.
+3. **`src/pages/PicksPage.tsx`** (line 156) — empty state ⚽ → `<Volleyball size={48} className="text-muted-foreground mx-auto mb-4" />`.
 
-Updated tampering trigger snippet:
+4. **`src/pages/LeaguePage.tsx`**:
+   - Line 78 (not found state) 😕 → `Frown`.
+   - Line 101 share button 📤 → `Share2`.
+   - Line 117 tab labels: replace `📊 Tabla` / `👥 Miembros` with inline `<BarChart3 />` + label and `<Users />` + label.
+   - Line 125 empty members 👥 → `Users`.
 
-```sql
-IF current_setting('app.system_write', true) = 'on' THEN
-  RETURN NEW;
-END IF;
-```
+5. **`src/pages/LeaguesListPage.tsx`**:
+   - Line 163 empty 🏆 → `Trophy`.
+   - Line 200 dialog 🎉 → `PartyPopper`.
 
-### 2. Backfill
+6. **`src/pages/CreateLeaguePage.tsx`**:
+   - Line 76 heading 🎉 → inline `PartyPopper` + text.
+   - Line 90 WhatsApp button 💬 → `MessageCircle`.
+   - Line 99 copy 📋 → `Copy`.
 
-One-time update so existing memberships immediately reflect current profile names:
+7. **`src/pages/ProfilePage.tsx`**:
+   - Line 155 WhatsApp prompt 💬 → `MessageCircle` (keep `text-primary`).
+   - Line 240 badge fallback ❓ — keep, this is gamification, but swap to `HelpCircle` for consistency with the Lucide style on locked badges. Earned-badge emojis remain (gamification personality).
 
-```sql
-SET LOCAL app.system_write = 'on';
-UPDATE public.league_members lm
-SET display_name = p.display_name
-FROM public.profiles p
-WHERE p.user_id = lm.user_id
-  AND p.display_name IS NOT NULL
-  AND length(trim(p.display_name)) > 0
-  AND p.display_name <> lm.display_name;
-```
+8. **`src/pages/AdminPage.tsx`** (lines 463-466) — dashboard stat icons: `CalendarDays`, `Volleyball`, `Building2`. Render as Lucide components inside the existing card.
 
-### 3. No frontend changes required
+## Files explicitly NOT changing
 
-`ProfilePage` already updates `profiles.display_name` on blur. `LeaguePage` reads from `league_members` and will now reflect updates after the trigger fires.
+- **`src/components/TopBar.tsx`** avatar circle — shows `profile.avatar_emoji` (user-personal, picked by user).
+- **`src/components/LeaderboardRow.tsx`** medals 🥇🥈🥉 — these read clearly as podium positions and are universally recognized; converting to Lucide makes ranking less scannable. Confirm if you want them swapped.
+- **`src/lib/mockData.ts`** badge emojis — gamification rewards (debut ⚽, racha 🔥, perfecta ⭐, campeón 🏆). These are part of the "fun" brand and shown small inside earned-badge tiles. Confirm if you want these as Lucide too.
 
 ## Out of scope
 
-Refactoring to drop `league_members.display_name` and join to `profiles` at read time (would require a new RPC/view because `profiles` SELECT policy restricts to `auth.uid() = user_id`).
+Future team-statistics screens — `BarChart3` / `TrendingUp` / `LineChart` will be wired in when those screens exist.
