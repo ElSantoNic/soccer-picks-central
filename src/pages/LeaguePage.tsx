@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { Frown, Share2, BarChart3, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import LeaderboardRow from "@/components/LeaderboardRow";
@@ -75,7 +76,7 @@ const LeaguePage = () => {
       <div className="min-h-screen pb-20 bg-background">
         <TopBar />
         <div className="text-center py-20">
-          <p className="text-4xl mb-3">😕</p>
+          <Frown size={44} strokeWidth={2.25} className="text-muted-foreground mx-auto mb-3" />
           <p className="font-semibold">Quiniela no encontrada</p>
         </div>
         <BottomNav />
@@ -98,31 +99,38 @@ const LeaguePage = () => {
                 {league.join_code ? ` · Código: ${league.join_code}` : ''}
               </p>
             </div>
-            <button className="text-xl p-2 hover:bg-secondary rounded-full transition-colors">📤</button>
+            <button className="p-2 hover:bg-secondary rounded-full transition-colors text-foreground" aria-label="Compartir">
+              <Share2 size={20} strokeWidth={2.25} />
+            </button>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex border-b border-border bg-card">
-          {(['tabla', 'miembros'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
-                activeTab === tab
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tab === 'tabla' ? '📊 Tabla' : '👥 Miembros'}
-            </button>
-          ))}
+          {(['tabla', 'miembros'] as const).map(tab => {
+            const Icon = tab === 'tabla' ? BarChart3 : Users;
+            const label = tab === 'tabla' ? 'Tabla' : 'Miembros';
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-3 text-sm font-semibold transition-colors inline-flex items-center justify-center gap-1.5 ${
+                  activeTab === tab
+                    ? 'text-primary border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon size={16} strokeWidth={2.25} />
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Content */}
         {members.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-4xl mb-3">👥</p>
+            <Users size={44} strokeWidth={2.25} className="text-muted-foreground mx-auto mb-3" />
             <p className="font-semibold mb-1">Sin miembros aún</p>
             <p className="text-sm text-muted-foreground">Comparte el código para invitar gente</p>
           </div>

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, CheckCircle, AlertCircle, Loader2, Plus, RefreshCw } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, Loader2, Plus, RefreshCw, CalendarDays, Volleyball, Building2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 type TabType = 'jornada' | 'schedule' | 'results' | 'dashboard';
@@ -460,10 +460,10 @@ const DashboardPanel = () => {
 
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
 
-  const cards = [
-    { label: 'Jornadas', value: stats.jornadas, icon: '📅' },
-    { label: 'Matches', value: stats.matches, icon: '⚽' },
-    { label: 'Teams', value: stats.teams, icon: '🏟️' },
+  const cards: { label: string; value: number; Icon: LucideIcon }[] = [
+    { label: 'Jornadas', value: stats.jornadas, Icon: CalendarDays },
+    { label: 'Matches', value: stats.matches, Icon: Volleyball },
+    { label: 'Teams', value: stats.teams, Icon: Building2 },
   ];
 
   return (
