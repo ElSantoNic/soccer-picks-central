@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import MatchCard from "@/components/MatchCard";
@@ -12,6 +13,7 @@ import type { Match } from "@/lib/mockData";
 const PicksPage = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [matches, setMatches] = useState<Match[]>([]);
   const [jornadaId, setJornadaId] = useState<string | null>(null);
   const [jornadaNumber, setJornadaNumber] = useState<number>(0);
@@ -121,12 +123,12 @@ const PicksPage = () => {
     setIsSaving(false);
 
     if (error) {
-      toast.error(`Error al guardar: ${error.message}`);
+      toast.error(t("picks.errSave", { message: error.message }));
       return;
     }
 
     setDirty(false);
-    toast.success('¡Picks guardados! ✓');
+    toast.success(t("picks.okSave"));
   };
 
   const firstFutureMatch = matches.find(m => new Date(m.kickoff_utc) > new Date());
@@ -154,19 +156,19 @@ const PicksPage = () => {
         {matches.length === 0 ? (
           <div className="text-center py-16">
             <Volleyball size={48} strokeWidth={2.25} className="text-muted-foreground mx-auto mb-4" />
-            <p className="font-semibold text-lg">No hay jornada activa en este momento.</p>
-            <p className="text-sm text-muted-foreground mt-1">¡Vuelve pronto!</p>
+            <p className="font-semibold text-lg">{t("picks.noJornadaTitle")}</p>
+            <p className="text-sm text-muted-foreground mt-1">{t("picks.noJornadaSub")}</p>
           </div>
         ) : (
           <>
             <h2 className="text-base font-bold mb-3">
-              Jornada {jornadaNumber} — Haz tus pronósticos
+              {t("picks.heading", { number: jornadaNumber })}
             </h2>
             {isJornadaLocked && (
               <div className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
-                <span className="font-semibold text-destructive">🔒 Jornada cerrada</span>
+                <span className="font-semibold text-destructive">{t("picks.lockedBadge")}</span>
                 <p className="text-muted-foreground mt-1">
-                  La jornada ya comenzó. No puedes cambiar tus picks.
+                  {t("picks.lockedDesc")}
                 </p>
               </div>
             )}
@@ -201,16 +203,16 @@ const PicksPage = () => {
             >
               {isSaving ? (
                 <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin" /> Guardando...
+                  <Loader2 className="w-5 h-5 animate-spin" /> {t("picks.saving")}
                 </span>
               ) : !dirty && pickedCount > 0 ? (
-                'Picks guardados ✓'
+                t("picks.saved")
               ) : (
-                <>Guardar mis picks</>
+                <>{t("picks.save")}</>
               )}
             </button>
             <p className="text-center text-xs text-muted-foreground mt-1">
-              {pickedCount} de {totalMatches} picks
+              {t("picks.counter", { picked: pickedCount, total: totalMatches })}
             </p>
           </div>
         </div>
