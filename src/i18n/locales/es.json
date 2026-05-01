@@ -156,7 +156,12 @@
     "noMembersDesc": "Comparte el código para invitar gente",
     "totalPoints": "{{n}} puntos totales",
     "share": "Compartir",
-    "you": "(tú)"
+    "you": "(tú)",
+    "removeMember": "Eliminar",
+    "removeConfirmTitle": "¿Eliminar miembro?",
+    "removeConfirmDesc": "{{name}} ya no formará parte de {{league}}.",
+    "removeSuccess": "Miembro eliminado",
+    "removeError": "No se pudo eliminar al miembro"
   },
   "createLeague": {
     "title": "Crear quiniela",

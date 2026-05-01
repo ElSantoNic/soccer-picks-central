@@ -156,7 +156,12 @@
     "noMembersDesc": "Share the code to invite people",
     "totalPoints": "{{n}} total points",
     "share": "Share",
-    "you": "(you)"
+    "you": "(you)",
+    "removeMember": "Remove",
+    "removeConfirmTitle": "Remove member?",
+    "removeConfirmDesc": "{{name}} will no longer be part of {{league}}.",
+    "removeSuccess": "Member removed",
+    "removeError": "Couldn't remove member"
   },
   "createLeague": {
     "title": "Create a league",
