@@ -1,98 +1,69 @@
-# Add Google Sign-In + Notification Channel Preference
+## Problem
 
-## What we're building
+`league_members.display_name` is a snapshot copied from `profiles.display_name` when a user creates or joins a league. Updating the name in Profile only writes to `profiles`, so league rosters keep showing the old name. The `prevent_league_member_points_tampering` trigger also blocks the user from updating their own `league_members.display_name` directly.
 
-1. A "Continuar con Google" button on the auth page (LoginPage.tsx) that uses Supabase OAuth.
-2. A small schema change to the `profiles` table so each user has at least one valid contact (email **or** phone) and a `notification_channel` preference.
-3. A soft nudge on the Profile page asking Google users (who only have an email) to add a WhatsApp number for jornada reminders.
+## Fix
 
-> Note: the file is currently named `LoginPage.tsx` but mounted at `/auth` — that's the page you mean by "AuthPage".
+Make `profiles.display_name` the source of truth and propagate changes via a trigger.
 
----
+### 1. Database migration
 
-## 1. Auth page UI changes (`src/pages/LoginPage.tsx`)
+Create a `SECURITY DEFINER` function + trigger on `profiles`:
 
-New layout for the input step (top to bottom):
-
-```text
-[ 📧 Correo ]  [ 📱 SMS ]  [ 🔑 Clave ]   ← existing tabs
-< current input for selected tab >
-[ Enviar código / Iniciar sesión ]         ← existing primary CTA
-
-──────────  o también  ──────────          ← new divider
-
-[  G  Continuar con Google  ]              ← new white button, dark text
-
-¿Primera vez? Configurar contraseña        ← existing (password tab only)
-Continuar sin cuenta →                     ← existing
-```
-
-- White background button with subtle border, dark text, the multi-color Google "G" SVG inline (no extra dependency).
-- The divider is two thin lines with the text "o también" centered between them, in muted-foreground.
-- On click: `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: ${window.location.origin}/picks } })`.
-- Show `toast.error` on failure; success will redirect via Supabase, then `AuthContext` picks up the session and `LoginPage` auto-navigates to `/picks` (already wired via the existing `useEffect`).
-- Hide the divider + Google button while we're in the OTP-verification step.
-
-## 2. Database changes (one migration)
-
-Add to `public.profiles`:
-- `email TEXT NULL` — populated by the signup trigger from `auth.users.email`.
-- `notification_channel TEXT NOT NULL DEFAULT 'none'` — allowed values: `'none' | 'email' | 'sms' | 'whatsapp'` (enforced by a CHECK constraint, immutable so safe).
-
-Backfill:
-- `UPDATE profiles SET email = u.email FROM auth.users u WHERE profiles.user_id = u.id AND profiles.email IS NULL;`
-- For existing rows, set `notification_channel = 'whatsapp'` if `phone` is present, else `'email'` if `email` is present, else `'none'`.
-
-Integrity rule (the "either email or phone, never both null" requirement):
-- Add a validation trigger (NOT a CHECK with subqueries) on `profiles` BEFORE INSERT/UPDATE that raises if `email IS NULL AND phone IS NULL`.
-
-Update `handle_new_user()` trigger so newly created profiles capture both fields:
 ```sql
-INSERT INTO public.profiles (user_id, display_name, phone, email, notification_channel)
-VALUES (
-  NEW.id,
-  COALESCE(NEW.raw_user_meta_data->>'display_name',
-           NEW.raw_user_meta_data->>'full_name',
-           NEW.phone, NEW.email),
-  NEW.phone,
-  NEW.email,
-  CASE
-    WHEN NEW.phone IS NOT NULL THEN 'whatsapp'  -- phone signups opt-in by default
-    ELSE 'none'                                  -- email/Google signups: opt-in later
-  END
-);
+CREATE OR REPLACE FUNCTION public.sync_league_member_display_name()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.display_name IS DISTINCT FROM OLD.display_name
+     AND NEW.display_name IS NOT NULL
+     AND length(trim(NEW.display_name)) > 0 THEN
+    UPDATE public.league_members
+    SET display_name = NEW.display_name
+    WHERE user_id = NEW.user_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER profiles_sync_league_member_display_name
+AFTER UPDATE OF display_name ON public.profiles
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_league_member_display_name();
 ```
 
-This satisfies the MVP rule: every user has at least one of `email`/`phone`, and Google users default to `notification_channel = 'none'`.
+The function runs as definer, so the existing `prevent_league_member_points_tampering` trigger sees `auth.uid()` as the calling user — but that trigger already short-circuits when the new value matches the old; here we deliberately change `display_name`, which the tampering trigger blocks. Fix by short-circuiting tampering checks for elevated/system contexts only when the calling function is the sync trigger. Cleanest approach: have the sync function temporarily set a session GUC (e.g. `SET LOCAL app.system_write = 'on'`) and update the tampering trigger to allow `display_name` changes when that GUC is set.
 
-## 3. Profile page nudge (`src/pages/ProfilePage.tsx`)
+Updated tampering trigger snippet:
 
-- Extend `Profile` type in `AuthContext` to include `email: string | null` and `notification_channel: string`.
-- Show contact line: prefer phone if present, otherwise email (the existing masking already handles both via `user.email`/`user.phone`).
-- New soft-nudge card, shown only when `profile.phone` is null:
+```sql
+IF current_setting('app.system_write', true) = 'on' THEN
+  RETURN NEW;
+END IF;
+```
 
-  ```text
-  💬 Agrega tu número de WhatsApp para recibir
-     recordatorios de la jornada.
-     [ Agregar número ]
-  ```
+### 2. Backfill
 
-  The button opens a small input + "Guardar" that updates `profiles.phone` and (on success) sets `notification_channel = 'whatsapp'`. We only update the row; we do NOT touch `auth.users.phone` (that would require an OTP verification flow, out of scope for this MVP nudge).
+One-time update so existing memberships immediately reflect current profile names:
 
-- Keep the existing "Recordatorio por WhatsApp" toggle, but wire it to `notification_channel` (`'whatsapp'` ↔ `'none'`) so the preference actually persists. Disable it when no phone is on file.
+```sql
+SET LOCAL app.system_write = 'on';
+UPDATE public.league_members lm
+SET display_name = p.display_name
+FROM public.profiles p
+WHERE p.user_id = lm.user_id
+  AND p.display_name IS NOT NULL
+  AND length(trim(p.display_name)) > 0
+  AND p.display_name <> lm.display_name;
+```
 
-## 4. Supabase dashboard step (manual, called out to the user)
+### 3. No frontend changes required
 
-The user must enable Google as an OAuth provider in the Supabase dashboard
-(Authentication → Providers → Google) and add their Site URL + redirect URLs.
-We'll surface a presentation-link to that page after the code lands.
+`ProfilePage` already updates `profiles.display_name` on blur. `LeaguePage` reads from `league_members` and will now reflect updates after the trigger fires.
 
----
+## Out of scope
 
-## Technical details
-
-- **Files touched**: `src/pages/LoginPage.tsx`, `src/pages/ProfilePage.tsx`, `src/contexts/AuthContext.tsx`, plus one new migration under `supabase/migrations/`.
-- **No new dependencies** — Google "G" rendered as inline SVG.
-- **Auth flow**: OAuth redirect lands back on `/picks`; the existing `onAuthStateChange` listener in `AuthContext` handles session pickup, and `handle_new_user` creates the profile row. No client-side profile insert needed.
-- **RLS**: existing `profiles` policies (owner-only read/update) remain valid for the new columns.
-- **Out of scope**: editing the OTP fallback for Google users, full notification delivery system, verifying the WhatsApp number via OTP from the Profile page.
+Refactoring to drop `league_members.display_name` and join to `profiles` at read time (would require a new RPC/view because `profiles` SELECT policy restricts to `auth.uid() = user_id`).
