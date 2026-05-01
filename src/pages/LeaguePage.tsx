@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import LeaderboardRow from "@/components/LeaderboardRow";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
@@ -18,12 +19,14 @@ interface LeagueMember {
 interface League {
   id: string;
   name: string;
-  join_code: string;
+  join_code: string | null;
   description: string | null;
+  created_by: string | null;
 }
 
 const LeaguePage = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
@@ -33,15 +36,27 @@ const LeaguePage = () => {
     if (!leagueId) return;
     const fetchData = async () => {
       const [leagueRes, membersRes] = await Promise.all([
-        supabase.from('leagues').select('*').eq('id', leagueId).single(),
+        supabase
+          .from('leagues')
+          .select('id, name, description, created_by')
+          .eq('id', leagueId)
+          .single(),
         supabase.from('league_members').select('*').eq('league_id', leagueId),
       ]);
-      if (leagueRes.data) setLeague(leagueRes.data);
+      if (leagueRes.data) {
+        let join_code: string | null = null;
+        if (user && leagueRes.data.created_by === user.id) {
+          const { data: codeData } = await supabase
+            .rpc('get_league_join_code', { _league_id: leagueRes.data.id });
+          join_code = (codeData as string | null) ?? null;
+        }
+        setLeague({ ...leagueRes.data, join_code });
+      }
       if (membersRes.data) setMembers(membersRes.data as LeagueMember[]);
       setLoading(false);
     };
     fetchData();
-  }, [leagueId]);
+  }, [leagueId, user]);
 
   const sorted = [...members].sort((a, b) => b.points_total - a.points_total);
 
@@ -78,7 +93,10 @@ const LeaguePage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-foreground">{league.name}</h2>
-              <p className="text-xs text-muted-foreground">{members.length} miembros · Código: {league.join_code}</p>
+              <p className="text-xs text-muted-foreground">
+                {members.length} miembros
+                {league.join_code ? ` · Código: ${league.join_code}` : ''}
+              </p>
             </div>
             <button className="text-xl p-2 hover:bg-secondary rounded-full transition-colors">📤</button>
           </div>
