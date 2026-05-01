@@ -61,14 +61,7 @@ const TopBar = ({ jornadaNumber = 10, firstKickoffUtc }: TopBarProps) => {
         )}
 
         <div className="flex items-center gap-2">
-          {user ? (
-            <button
-              onClick={() => navigate('/profile')}
-              className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm"
-            >
-              {profile?.avatar_emoji || '⚽'}
-            </button>
-          ) : (
+          {!user && (
             <button
               onClick={() => navigate('/auth')}
               className="text-xs font-semibold bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-all"
