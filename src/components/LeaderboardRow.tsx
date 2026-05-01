@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 interface LeaderboardMember {
   display_name: string;
   avatar_emoji: string;
@@ -15,6 +17,7 @@ interface LeaderboardRowProps {
 const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 const LeaderboardRow = ({ rank, member, isCurrentUser }: LeaderboardRowProps) => {
+  const { t } = useTranslation();
   return (
     <div className={`flex items-center gap-3 px-4 py-3 transition-colors ${
       isCurrentUser ? 'bg-primary/5 border-l-4 border-primary' : 'border-b border-border'
@@ -30,7 +33,7 @@ const LeaderboardRow = ({ rank, member, isCurrentUser }: LeaderboardRowProps) =>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm truncate">
           {member.display_name}
-          {isCurrentUser && <span className="text-primary ml-1 text-xs">(tú)</span>}
+          {isCurrentUser && <span className="text-primary ml-1 text-xs">{t('league.you')}</span>}
         </p>
         {member.badges.length > 0 && (
           <p className="text-xs">{member.badges.slice(0, 3).join(' ')}</p>
