@@ -12,7 +12,10 @@ const ProfilePage = () => {
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [lang, setLang] = useState<"es" | "en">("es");
-  const [whatsappReminder, setWhatsappReminder] = useState(true);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [showPhoneInput, setShowPhoneInput] = useState(false);
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [savingChannel, setSavingChannel] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -38,6 +41,46 @@ const ProfilePage = () => {
     }
   };
 
+  const handleSavePhone = async () => {
+    if (!user) return;
+    const cleaned = phoneInput.trim().replace(/\s/g, "");
+    if (cleaned.length < 10) {
+      toast.error("Ingresa un número válido");
+      return;
+    }
+    const fullPhone = cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
+    setSavingPhone(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ phone: fullPhone, notification_channel: "whatsapp" })
+      .eq("user_id", user.id);
+    setSavingPhone(false);
+    if (error) {
+      toast.error(error.message || "No se pudo guardar el número");
+      return;
+    }
+    toast.success("¡Número guardado! Recibirás recordatorios por WhatsApp.");
+    setShowPhoneInput(false);
+    setPhoneInput("");
+    refreshProfile();
+  };
+
+  const handleToggleWhatsapp = async () => {
+    if (!user || !profile?.phone) return;
+    const next = profile.notification_channel === "whatsapp" ? "none" : "whatsapp";
+    setSavingChannel(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ notification_channel: next })
+      .eq("user_id", user.id);
+    setSavingChannel(false);
+    if (error) {
+      toast.error("No se pudo actualizar la preferencia");
+      return;
+    }
+    refreshProfile();
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
@@ -60,6 +103,9 @@ const ProfilePage = () => {
     : user.phone
       ? user.phone.replace(/(.{4})(.*)(.{4})/, "$1 ••• $3")
       : "";
+
+  const hasPhone = !!profile?.phone;
+  const whatsappOn = profile?.notification_channel === "whatsapp";
 
   return (
     <div className="min-h-screen pb-20 bg-background">
@@ -102,22 +148,76 @@ const ProfilePage = () => {
           </div>
         </section>
 
+        {!hasPhone && (
+          <section>
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">💬</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">
+                    Agrega tu número de WhatsApp para recibir recordatorios de la jornada.
+                  </p>
+                  {showPhoneInput ? (
+                    <div className="mt-3 space-y-2">
+                      <input
+                        type="tel"
+                        value={phoneInput}
+                        onChange={(e) => setPhoneInput(e.target.value)}
+                        placeholder="+521234567890"
+                        className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSavePhone}
+                          disabled={savingPhone}
+                          className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-xs hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        >
+                          {savingPhone ? "Guardando..." : "Guardar"}
+                        </button>
+                        <button
+                          onClick={() => { setShowPhoneInput(false); setPhoneInput(""); }}
+                          className="px-4 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowPhoneInput(true)}
+                      className="mt-3 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-xs hover:bg-primary/90 transition-colors"
+                    >
+                      Agregar número
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         <section>
           <h2 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-wider">
             Avisos y recordatorios
           </h2>
           <div className="bg-card rounded-xl p-4 border border-border">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Recordatorio por WhatsApp</span>
+              <div className="flex-1">
+                <span className="text-sm font-medium block">Recordatorio por WhatsApp</span>
+                {!hasPhone && (
+                  <span className="text-xs text-muted-foreground">Agrega un número para activarlo</span>
+                )}
+              </div>
               <button
-                onClick={() => setWhatsappReminder(!whatsappReminder)}
+                onClick={handleToggleWhatsapp}
+                disabled={!hasPhone || savingChannel}
                 className={`w-11 h-6 rounded-full transition-colors relative ${
-                  whatsappReminder ? "bg-primary" : "bg-muted"
-                }`}
+                  whatsappOn ? "bg-primary" : "bg-muted"
+                } ${!hasPhone ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <span
                   className={`absolute top-0.5 w-5 h-5 rounded-full bg-card shadow transition-transform ${
-                    whatsappReminder ? "left-[22px]" : "left-0.5"
+                    whatsappOn ? "left-[22px]" : "left-0.5"
                   }`}
                 />
               </button>
