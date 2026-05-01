@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, CheckCircle, AlertCircle, Loader2, Plus, RefreshCw } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, Loader2, Plus, RefreshCw, CalendarDays, Volleyball, Building2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 type TabType = 'jornada' | 'schedule' | 'results' | 'dashboard';
@@ -460,23 +460,26 @@ const DashboardPanel = () => {
 
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
 
-  const cards = [
-    { label: 'Jornadas', value: stats.jornadas, icon: '📅' },
-    { label: 'Matches', value: stats.matches, icon: '⚽' },
-    { label: 'Teams', value: stats.teams, icon: '🏟️' },
+  const cards: { label: string; value: number; Icon: LucideIcon }[] = [
+    { label: 'Jornadas', value: stats.jornadas, Icon: CalendarDays },
+    { label: 'Matches', value: stats.matches, Icon: Volleyball },
+    { label: 'Teams', value: stats.teams, Icon: Building2 },
   ];
 
   return (
     <div>
       <h2 className="text-lg font-bold mb-4">Dashboard</h2>
       <div className="grid grid-cols-3 gap-4">
-        {cards.map(c => (
-          <div key={c.label} className="bg-card border border-border rounded-lg p-4 text-center">
-            <div className="text-2xl mb-1">{c.icon}</div>
-            <div className="text-2xl font-bold">{c.value}</div>
-            <div className="text-xs text-muted-foreground">{c.label}</div>
-          </div>
-        ))}
+        {cards.map(c => {
+          const Icon = c.Icon;
+          return (
+            <div key={c.label} className="bg-card border border-border rounded-lg p-4 text-center">
+              <Icon size={24} strokeWidth={2.25} className="text-primary mx-auto mb-1" />
+              <div className="text-2xl font-bold">{c.value}</div>
+              <div className="text-xs text-muted-foreground">{c.label}</div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Trophy, PartyPopper } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import TopBar from "@/components/TopBar";
@@ -160,7 +161,7 @@ const LeaguesListPage = () => {
           <div className="text-center py-12 text-muted-foreground text-sm">Cargando...</div>
         ) : leagues.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-4xl mb-3">🏆</p>
+            <Trophy size={44} strokeWidth={2.25} className="text-muted-foreground mx-auto mb-3" />
             <p className="font-semibold mb-1">No tienes quinielas aún</p>
             <p className="text-sm text-muted-foreground">Crea una o únete con un código</p>
           </div>
@@ -197,7 +198,7 @@ const LeaguesListPage = () => {
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <div className="text-5xl text-center mb-2">🎉</div>
+            <div className="flex justify-center mb-2"><PartyPopper size={48} strokeWidth={2.25} className="text-primary" /></div>
             <DialogTitle className="text-center">
               {alreadyMember ? "Ya eres miembro" : "¡Te uniste a la quiniela!"}
             </DialogTitle>

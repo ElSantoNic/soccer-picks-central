@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PartyPopper, MessageCircle, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import TopBar from "@/components/TopBar";
@@ -73,7 +74,10 @@ const CreateLeaguePage = () => {
         <TopBar />
         <main className="max-w-lg mx-auto px-4 py-6">
           <div className="bg-card rounded-xl p-6 border border-border text-center">
-            <h2 className="text-xl font-bold mb-1">🎉 ¡Quiniela creada!</h2>
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <PartyPopper size={22} strokeWidth={2.25} className="text-primary" />
+              <h2 className="text-xl font-bold">¡Quiniela creada!</h2>
+            </div>
             <p className="text-sm text-muted-foreground mb-6">
               Comparte tu quiniela con familia y amigos
             </p>
@@ -87,7 +91,8 @@ const CreateLeaguePage = () => {
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-[#25D366] text-primary-foreground font-semibold hover:brightness-110 transition-all"
               >
-                💬 Compartir por WhatsApp
+                <MessageCircle size={18} strokeWidth={2.25} />
+                Compartir por WhatsApp
               </a>
               <button
                 onClick={() => {
@@ -96,7 +101,8 @@ const CreateLeaguePage = () => {
                 }}
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-secondary border border-border font-semibold hover:bg-muted transition-all"
               >
-                📋 Copiar enlace
+                <Copy size={18} strokeWidth={2.25} />
+                Copiar enlace
               </button>
             </div>
             <div className="border-t border-border pt-4">

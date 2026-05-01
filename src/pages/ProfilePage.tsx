@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { MessageCircle, HelpCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { BADGE_DEFINITIONS } from "@/lib/mockData";
@@ -152,7 +153,7 @@ const ProfilePage = () => {
           <section>
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
               <div className="flex items-start gap-3">
-                <span className="text-2xl">💬</span>
+                <MessageCircle size={24} strokeWidth={2.25} className="text-primary shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">
                     Agrega tu número de WhatsApp para recibir recordatorios de la jornada.
@@ -237,7 +238,11 @@ const ProfilePage = () => {
                     isEarned ? "bg-primary/5 border-primary/30" : "bg-muted/50 border-border opacity-50"
                   }`}
                 >
-                  <span className="text-2xl block mb-1">{isEarned ? badge.emoji : "❓"}</span>
+                  {isEarned ? (
+                    <span className="text-2xl block mb-1">{badge.emoji}</span>
+                  ) : (
+                    <HelpCircle size={24} strokeWidth={2.25} className="text-muted-foreground mx-auto mb-1" />
+                  )}
                   <p className="text-[10px] font-semibold leading-tight">{badge.name}</p>
                 </div>
               );

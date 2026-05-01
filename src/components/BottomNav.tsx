@@ -1,11 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { Volleyball, Trophy, ClipboardList, User, type LucideIcon } from "lucide-react";
 
-const tabs = [
-  { id: 'picks', label: 'Picks', emoji: '⚽', path: '/picks' },
-  { id: 'league', label: 'Quinielas', emoji: '🏆', path: '/leagues' },
-  { id: 'results', label: 'Resultados', emoji: '📋', path: '/picks/results' },
-  { id: 'profile', label: 'Perfil', emoji: '👤', path: '/profile' },
-] as const;
+const tabs: { id: string; label: string; Icon: LucideIcon; path: string }[] = [
+  { id: 'picks', label: 'Picks', Icon: Volleyball, path: '/picks' },
+  { id: 'league', label: 'Quinielas', Icon: Trophy, path: '/leagues' },
+  { id: 'results', label: 'Resultados', Icon: ClipboardList, path: '/picks/results' },
+  { id: 'profile', label: 'Perfil', Icon: User, path: '/profile' },
+];
 
 const HIDDEN_ROUTES = ['/', '/auth', '/admin', '/about'];
 
@@ -22,15 +23,16 @@ const BottomNav = () => {
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
         {tabs.map(tab => {
           const isActive = tab.id === activeTab;
+          const Icon = tab.Icon;
           return (
             <button
               key={tab.id}
               onClick={() => navigate(tab.path)}
-              className={`flex flex-col items-center gap-0.5 py-1 px-3 transition-colors ${
+              className={`flex flex-col items-center gap-1 py-1 px-3 transition-colors ${
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <span className="text-xl">{tab.emoji}</span>
+              <Icon size={22} strokeWidth={2.25} />
               <span className="text-[10px] font-medium">{tab.label}</span>
             </button>
           );

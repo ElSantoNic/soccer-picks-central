@@ -6,7 +6,7 @@ import MatchCard from "@/components/MatchCard";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Volleyball } from "lucide-react";
 import type { Match } from "@/lib/mockData";
 
 const PicksPage = () => {
@@ -153,7 +153,7 @@ const PicksPage = () => {
       <main className="max-w-lg mx-auto px-4 py-4">
         {matches.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-4xl mb-4">⚽</p>
+            <Volleyball size={48} strokeWidth={2.25} className="text-muted-foreground mx-auto mb-4" />
             <p className="font-semibold text-lg">No hay jornada activa en este momento.</p>
             <p className="text-sm text-muted-foreground mt-1">¡Vuelve pronto!</p>
           </div>
