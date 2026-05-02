@@ -1,37 +1,65 @@
-## Goal
-Let league creators (admins) remove members from their league.
+# Fix: Results upload fails with "Not allowed to modify points, badges, or membership identity fields"
 
-## Database changes
-The `league_members` table currently has no DELETE policy, so nobody can delete rows. Add a migration:
+## Root cause
 
-1. **RLS DELETE policy** on `league_members`:
-   - Allow delete when `auth.uid() = (SELECT created_by FROM leagues WHERE id = league_members.league_id)`
-   - Prevent the creator from removing themselves (optional safeguard): `AND user_id IS DISTINCT FROM (SELECT created_by FROM leagues WHERE id = league_members.league_id)`
-2. **Cascade cleanup (optional, recommended)**: When a member is removed, their picks remain (they belong to the user globally, not the league), so no extra cleanup needed. Points on `league_members` are deleted with the row — fine.
+When an admin uploads results, `Results Upload` updates `matches.result_1x2`. This fires the `score_match_results` trigger (SECURITY DEFINER), which updates `league_members.points_total` and `points_jornada` for affected users.
 
-## UI changes (`src/pages/LeaguePage.tsx`)
-1. Determine `isCreator = user?.id === league.created_by`.
-2. In the **Miembros** tab, show a small "Remove" (trash icon) button on each member row, only when `isCreator` is true and the member is not the creator themselves.
-3. On click, open a confirmation `AlertDialog` ("Remove {display_name} from {league.name}?").
-4. On confirm: `supabase.from('league_members').delete().eq('id', member.id)`, then update local state and toast success/error.
-5. Also add a remove control on the **Tabla** tab via `LeaderboardRow` — out of scope to keep change minimal; admins can switch to Miembros tab to remove.
+However, the `prevent_league_member_points_tampering` trigger blocks any change to those columns unless:
+- `auth.uid()` is NULL (system context), OR
+- the session GUC `app.system_write` is `'on'`
 
-## i18n keys to add (`es.json` + `en.json`)
-- `league.removeMember` — "Eliminar" / "Remove"
-- `league.removeConfirmTitle` — "¿Eliminar miembro?" / "Remove member?"
-- `league.removeConfirmDesc` — "{{name}} ya no formará parte de {{league}}." / "{{name}} will no longer be part of {{league}}."
-- `league.removeSuccess` — "Miembro eliminado" / "Member removed"
-- `league.removeError` — "No se pudo eliminar al miembro" / "Could not remove member"
-- `common.cancel`, `common.confirm` (reuse if existing)
+Since the admin is authenticated, `auth.uid()` is not NULL, and the scoring trigger never sets the GUC — so every league_members update is rejected. That's exactly the 9 errors shown (one per user with picks on those matches).
 
-## Technical notes
-- Use existing `AlertDialog` from `@/components/ui/alert-dialog`.
-- Use `Trash2` icon from `lucide-react`.
-- Toast via existing `use-toast` hook (already used elsewhere).
-- After successful delete, filter `members` state to drop the removed row — no refetch needed.
-- The creator row is hidden from the remove control to prevent accidental self-removal (DB policy also blocks it as defense in depth).
+## Fix
 
-## Files touched
-- New migration: add DELETE policy on `league_members`.
-- `src/pages/LeaguePage.tsx` — add remove UI + handler.
-- `src/i18n/locales/es.json`, `src/i18n/locales/en.json` — new strings.
+Update the `score_match_results` function to set `app.system_write='on'` (transaction-local) before the league_members UPDATE, mirroring the pattern already used in `sync_league_member_display_name`.
+
+### Migration (single function replacement)
+
+```sql
+CREATE OR REPLACE FUNCTION public.score_match_results()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  open_jornada_id uuid;
+  affected_user uuid;
+BEGIN
+  IF NEW.result_1x2 IS NULL THEN RETURN NEW; END IF;
+  IF OLD.result_1x2 IS NOT DISTINCT FROM NEW.result_1x2 THEN RETURN NEW; END IF;
+  IF NEW.result_1x2 NOT IN ('1', 'X', '2') THEN RETURN NEW; END IF;
+
+  UPDATE public.picks
+  SET is_correct = (pick = NEW.result_1x2),
+      points_awarded = CASE WHEN pick = NEW.result_1x2 THEN 3 ELSE 0 END
+  WHERE match_id = NEW.id;
+
+  SELECT id INTO open_jornada_id
+  FROM public.jornadas WHERE status = 'open'
+  ORDER BY jornada_number DESC LIMIT 1;
+
+  -- Authorize the system write so the tamper guard lets us through
+  PERFORM set_config('app.system_write', 'on', true);
+
+  FOR affected_user IN
+    SELECT DISTINCT user_id FROM public.picks WHERE match_id = NEW.id
+  LOOP
+    UPDATE public.league_members lm
+    SET points_total = COALESCE((SELECT SUM(points_awarded) FROM public.picks WHERE user_id = affected_user), 0),
+        points_jornada = COALESCE((SELECT SUM(points_awarded) FROM public.picks
+                                   WHERE user_id = affected_user AND jornada_id = open_jornada_id), 0)
+    WHERE lm.user_id = affected_user;
+  END LOOP;
+
+  RETURN NEW;
+END;
+$function$;
+```
+
+## After the fix
+
+Re-upload `match_results-2.csv` from the Admin → Results Upload tab. The 9 rows should update successfully and league standings will refresh.
+
+No frontend or RLS changes needed.
