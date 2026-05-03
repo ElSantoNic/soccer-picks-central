@@ -118,7 +118,7 @@
     "jornadaLabel": "Matchday",
     "pickJornada": "Choose a matchday",
     "jornadaItem": "Matchday {{number}}",
-    "jornadaCompleted": "Matchday {{number}} complete",
+    "jornadaCompleted": "{{label}} complete",
     "points": "points",
     "pointsThisJornada": "+{{n}} pts this matchday",
     "heading": "Results",
