@@ -104,7 +104,12 @@ const LeaguePage = () => {
     setMemberToRemove(null);
   };
 
-  const sorted = [...members].sort((a, b) => b.points_total - a.points_total);
+  const sorted = [...members].sort((a, b) =>
+    standingsView === 'jornada'
+      ? b.points_jornada - a.points_jornada || b.points_total - a.points_total
+      : b.points_total - a.points_total
+  );
+  const allJornadaZero = members.length > 0 && members.every(m => m.points_jornada === 0);
 
   if (loading) {
     return (
