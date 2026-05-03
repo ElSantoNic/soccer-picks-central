@@ -104,8 +104,6 @@ const JornadaManager = () => {
     <div>
       <h2 className="text-lg font-bold mb-4">Jornada Manager</h2>
 
-      <div className="flex gap-2 items-end mb-6 p-4 bg-card rounded-lg border border-border">
-        <div>
       <div className="flex flex-wrap gap-2 items-end mb-6 p-4 bg-card rounded-lg border border-border">
         <div>
           <label className="text-xs font-medium block mb-1">Season</label>
