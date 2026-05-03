@@ -381,7 +381,10 @@ const ScheduleUpload = () => {
 
       const { error: insertError } = await supabase.from('matches').upsert(matchInserts, { onConflict: 'match_id_csv' });
 
-      if (insertError) throw new Error(insertError.message);
+      if (insertError) {
+        console.error('Match upsert failed:', insertError);
+        throw new Error('Failed to import matches — check CSV and try again');
+      }
 
       setResult({
         success: true,
@@ -390,7 +393,8 @@ const ScheduleUpload = () => {
         stats,
       });
     } catch (err: any) {
-      setResult({ success: false, summary: err.message, errors: [] });
+      console.error('Schedule upload failed:', err);
+      setResult({ success: false, summary: err.message || 'Upload failed', errors: [] });
     } finally {
       setIsUploading(false);
     }
