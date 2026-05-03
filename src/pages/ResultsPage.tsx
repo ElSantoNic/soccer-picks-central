@@ -42,6 +42,8 @@ interface PickRow {
 interface JornadaBundle {
   id: string;
   jornada_number: number;
+  stage: string;
+  leg: string;
   matches: MatchRow[];
   picksByMatch: Record<string, PickRow>;
 }
