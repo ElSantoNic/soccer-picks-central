@@ -37,21 +37,27 @@ export type Database = {
           created_at: string
           id: string
           jornada_number: number
+          leg: string
           season: string
+          stage: string
           status: string
         }
         Insert: {
           created_at?: string
           id?: string
           jornada_number: number
+          leg?: string
           season?: string
+          stage?: string
           status?: string
         }
         Update: {
           created_at?: string
           id?: string
           jornada_number?: number
+          leg?: string
           season?: string
+          stage?: string
           status?: string
         }
         Relationships: []

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import LeaderboardRow from "@/components/LeaderboardRow";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
+import { formatJornadaLabel } from "@/lib/jornadaLabel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +45,7 @@ const LeaguePage = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
   const [standingsView, setStandingsView] = useState<'jornada' | 'overall'>('jornada');
-  const [currentJornada, setCurrentJornada] = useState<{ jornada_number: number; season: string } | null>(null);
+  const [currentJornada, setCurrentJornada] = useState<{ jornada_number: number; season: string; stage: string; leg: string } | null>(null);
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +64,7 @@ const LeaguePage = () => {
         supabase.from('league_members').select('*').eq('league_id', leagueId),
         supabase
           .from('jornadas')
-          .select('jornada_number, season')
+          .select('jornada_number, season, stage, leg')
           .order('jornada_number', { ascending: false })
           .limit(1)
           .maybeSingle(),
@@ -78,7 +79,10 @@ const LeaguePage = () => {
         setLeague({ ...leagueRes.data, join_code });
       }
       if (membersRes.data) setMembers(membersRes.data as LeagueMember[]);
-      if (jornadaRes.data) setCurrentJornada(jornadaRes.data);
+      if (jornadaRes.data) {
+        const j: any = jornadaRes.data;
+        setCurrentJornada({ jornada_number: j.jornada_number, season: j.season, stage: j.stage ?? 'regular', leg: j.leg ?? 'single' });
+      }
       setLoading(false);
     };
     fetchData();
@@ -201,7 +205,7 @@ const LeaguePage = () => {
             {currentJornada && (
               <p className="px-4 py-2 text-[11px] text-muted-foreground bg-card border-b border-border">
                 {standingsView === 'jornada'
-                  ? t('league.jornadaLabel', { number: currentJornada.jornada_number })
+                  ? formatJornadaLabel(t, currentJornada, 'league.jornadaLabel')
                   : t('league.seasonLabel', { season: currentJornada.season })}
               </p>
             )}

@@ -90,7 +90,7 @@
   "picks": {
     "noJornadaTitle": "No active matchday right now.",
     "noJornadaSub": "Come back soon!",
-    "heading": "Matchday {{number}} — Make your predictions",
+    "heading": "{{label}} — Make your predictions",
     "lockedBadge": "🔒 Matchday locked",
     "lockedDesc": "The matchday has started. You can't change your picks.",
     "saving": "Saving...",
@@ -118,7 +118,7 @@
     "jornadaLabel": "Matchday",
     "pickJornada": "Choose a matchday",
     "jornadaItem": "Matchday {{number}}",
-    "jornadaCompleted": "Matchday {{number}} complete",
+    "jornadaCompleted": "{{label}} complete",
     "points": "points",
     "pointsThisJornada": "+{{n}} pts this matchday",
     "heading": "Results",
@@ -212,6 +212,17 @@
     "addPhoneToActivate": "Add a number to enable",
     "achievements": "My achievements",
     "signOut": "Sign out"
+  },
+  "stage": {
+    "regular": "Regular",
+    "cuartos": "Quarterfinals",
+    "semifinal": "Semifinal",
+    "final": "Final"
+  },
+  "leg": {
+    "single": "Single",
+    "ida": "1st Leg",
+    "vuelta": "2nd Leg"
   },
   "about": {
     "title": "About FC Quiniela",

@@ -9,6 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import { Loader2, Volleyball } from "lucide-react";
 import type { Match } from "@/lib/mockData";
+import { formatJornadaLabel } from "@/lib/jornadaLabel";
 
 const PicksPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -16,7 +17,7 @@ const PicksPage = () => {
   const { t } = useTranslation();
   const [matches, setMatches] = useState<Match[]>([]);
   const [jornadaId, setJornadaId] = useState<string | null>(null);
-  const [jornadaNumber, setJornadaNumber] = useState<number>(0);
+  const [jornadaInfo, setJornadaInfo] = useState<{ jornada_number: number; stage: string; leg: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [picks, setPicks] = useState<Record<string, '1' | 'X' | '2'>>({});
   const [matchIdMap, setMatchIdMap] = useState<Record<string, string>>({}); // csv/display id -> db uuid
@@ -45,7 +46,7 @@ const PicksPage = () => {
       }
 
       setJornadaId(jornada.id);
-      setJornadaNumber(jornada.jornada_number);
+      setJornadaInfo({ jornada_number: jornada.jornada_number, stage: (jornada as any).stage ?? 'regular', leg: (jornada as any).leg ?? 'single' });
 
       const { data: matchData } = await supabase
         .from('matches')
@@ -149,7 +150,7 @@ const PicksPage = () => {
   return (
     <div className="min-h-screen pb-36 bg-background">
       <TopBar
-        jornadaNumber={jornadaNumber}
+        jornadaNumber={jornadaInfo?.jornada_number ?? 0}
         firstKickoffUtc={firstFutureMatch?.kickoff_utc}
       />
 
@@ -163,7 +164,7 @@ const PicksPage = () => {
         ) : (
           <>
             <h2 className="text-base font-bold mb-3">
-              {t("picks.heading", { number: jornadaNumber })}
+              {t("picks.heading", { label: jornadaInfo ? formatJornadaLabel(t, jornadaInfo, "league.jornadaLabel") : "" })}
             </h2>
             {isJornadaLocked && (
               <div className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">

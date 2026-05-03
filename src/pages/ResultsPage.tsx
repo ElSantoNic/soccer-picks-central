@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
+import { formatJornadaLabel } from "@/lib/jornadaLabel";
 
 interface MatchRow {
   id: string;
@@ -41,6 +42,8 @@ interface PickRow {
 interface JornadaBundle {
   id: string;
   jornada_number: number;
+  stage: string;
+  leg: string;
   matches: MatchRow[];
   picksByMatch: Record<string, PickRow>;
 }
@@ -66,7 +69,7 @@ const ResultsPage = () => {
 
       const { data: jornadaRows, error: jornadaErr } = await supabase
         .from("jornadas")
-        .select("id, jornada_number")
+        .select("id, jornada_number, stage, leg")
         .order("jornada_number", { ascending: false });
 
       if (jornadaErr) {
@@ -77,8 +80,8 @@ const ResultsPage = () => {
         return;
       }
 
-      const jornadaById = new Map<string, number>(
-        (jornadaRows ?? []).map((j) => [j.id, j.jornada_number]),
+      const jornadaById = new Map<string, { jornada_number: number; stage: string; leg: string }>(
+        (jornadaRows ?? []).map((j: any) => [j.id, { jornada_number: j.jornada_number, stage: j.stage ?? 'regular', leg: j.leg ?? 'single' }]),
       );
 
       const { data: pickRows, error: pickErr } = await supabase
@@ -122,11 +125,13 @@ const ResultsPage = () => {
 
       const bundleMap = new Map<string, JornadaBundle>();
       for (const jid of playedJornadaIds) {
-        const num = jornadaById.get(jid);
-        if (num === undefined) continue;
+        const info = jornadaById.get(jid);
+        if (!info) continue;
         bundleMap.set(jid, {
           id: jid,
-          jornada_number: num,
+          jornada_number: info.jornada_number,
+          stage: info.stage,
+          leg: info.leg,
           matches: [],
           picksByMatch: {},
         });
@@ -221,7 +226,7 @@ const ResultsPage = () => {
                   <SelectContent>
                     {bundles.map((b) => (
                       <SelectItem key={b.id} value={b.id}>
-                        {t("results.jornadaItem", { number: b.jornada_number })}
+                        {formatJornadaLabel(t, b, "results.jornadaItem")}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -237,7 +242,7 @@ const ResultsPage = () => {
               transition={{ duration: 0.4 }}
             >
               <p className="text-sm text-muted-foreground mb-1">
-                {t("results.jornadaCompleted", { number: selected.jornada_number })}
+                {t("results.jornadaCompleted", { label: formatJornadaLabel(t, selected, "results.jornadaItem") })}
               </p>
               <motion.p
                 className="text-5xl font-bold text-primary"

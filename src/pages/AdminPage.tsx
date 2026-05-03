@@ -53,6 +53,8 @@ const JornadaManager = () => {
   const [loading, setLoading] = useState(true);
   const [newNumber, setNewNumber] = useState('');
   const [newSeason, setNewSeason] = useState('Clausura 2026');
+  const [newStage, setNewStage] = useState<'regular' | 'cuartos' | 'semifinal' | 'final'>('regular');
+  const [newLeg, setNewLeg] = useState<'single' | 'ida' | 'vuelta'>('single');
 
   const fetchJornadas = useCallback(async () => {
     setLoading(true);
@@ -80,6 +82,8 @@ const JornadaManager = () => {
       jornada_number: parseInt(newNumber),
       season: newSeason,
       status: 'open',
+      stage: newStage,
+      leg: newLeg,
     });
     if (error) {
       toast.error(error.message);
@@ -100,7 +104,7 @@ const JornadaManager = () => {
     <div>
       <h2 className="text-lg font-bold mb-4">Jornada Manager</h2>
 
-      <div className="flex gap-2 items-end mb-6 p-4 bg-card rounded-lg border border-border">
+      <div className="flex flex-wrap gap-2 items-end mb-6 p-4 bg-card rounded-lg border border-border">
         <div>
           <label className="text-xs font-medium block mb-1">Season</label>
           <input
@@ -119,6 +123,31 @@ const JornadaManager = () => {
             min={1}
           />
         </div>
+        <div>
+          <label className="text-xs font-medium block mb-1">Stage</label>
+          <select
+            value={newStage}
+            onChange={e => setNewStage(e.target.value as any)}
+            className="rounded-md border border-input bg-background px-2 py-2 text-sm"
+          >
+            <option value="regular">Regular</option>
+            <option value="cuartos">Cuartos</option>
+            <option value="semifinal">Semifinal</option>
+            <option value="final">Final</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium block mb-1">Leg</label>
+          <select
+            value={newLeg}
+            onChange={e => setNewLeg(e.target.value as any)}
+            className="rounded-md border border-input bg-background px-2 py-2 text-sm"
+          >
+            <option value="single">Single</option>
+            <option value="ida">Ida</option>
+            <option value="vuelta">Vuelta</option>
+          </select>
+        </div>
         <button
           onClick={createJornada}
           className="flex items-center gap-1 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90"
@@ -133,8 +162,13 @@ const JornadaManager = () => {
         <div className="space-y-2">
           {jornadas.map(j => (
             <div key={j.id} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
-              <div>
+              <div className="flex items-center gap-2">
                 <span className="font-semibold">Jornada {j.jornada_number}</span>
+                {(j.stage && j.stage !== 'regular') && (
+                  <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-accent/20 text-accent-foreground font-semibold">
+                    {j.stage}{j.leg && j.leg !== 'single' ? ` · ${j.leg}` : ''}
+                  </span>
+                )}
                 <span className="text-xs text-muted-foreground ml-2">{j.season}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -184,6 +218,8 @@ const ScheduleUpload = () => {
       const header = lines[0].split(',').map(h => h.trim().toLowerCase());
       const matchIdIdx = header.findIndex(h => h === 'match_id');
       const jornadaIdx = header.findIndex(h => h.includes('jornada'));
+      const stageIdx = header.findIndex(h => h === 'stage');
+      const legIdx = header.findIndex(h => h === 'leg');
       const homeIdx = header.findIndex(h => h.includes('home'));
       const awayIdx = header.findIndex(h => h.includes('away') || h.includes('visit'));
       const kickoffIdx = header.findIndex(h => h.includes('kickoff') || h.includes('date') || h.includes('fecha'));
@@ -192,8 +228,11 @@ const ScheduleUpload = () => {
         throw new Error('CSV must contain columns: home_team, away_team, kickoff_utc (or fecha/date)');
       }
 
+      const VALID_STAGES = new Set(['regular', 'cuartos', 'semifinal', 'final']);
+      const VALID_LEGS = new Set(['single', 'ida', 'vuelta']);
+
       const errors: string[] = [];
-      const rows: { match_id_csv: string; jornada_number: number; home_team: string; away_team: string; kickoff_utc: string }[] = [];
+      const rows: { match_id_csv: string; jornada_number: number; stage: string; leg: string; home_team: string; away_team: string; kickoff_utc: string }[] = [];
 
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -205,7 +244,15 @@ const ScheduleUpload = () => {
         const kickoff = cols[kickoffIdx];
         const matchId = matchIdIdx !== -1 ? cols[matchIdIdx] : `m${i}`;
         const jornadaNum = jornadaIdx !== -1 ? parseInt(cols[jornadaIdx]) : 0;
+        const stage = (stageIdx !== -1 ? (cols[stageIdx] || 'regular') : 'regular').toLowerCase();
+        const leg = (legIdx !== -1 ? (cols[legIdx] || 'single') : 'single').toLowerCase();
 
+        if (!VALID_STAGES.has(stage)) {
+          errors.push(`Row ${i + 1}: invalid stage "${stage}" (must be regular|cuartos|semifinal|final)`);
+        }
+        if (!VALID_LEGS.has(leg)) {
+          errors.push(`Row ${i + 1}: invalid leg "${leg}" (must be single|ida|vuelta)`);
+        }
         if (!validTeams.has(home)) {
           errors.push(`Row ${i + 1}: team "${home}" not in DB (check teams table)`);
         }
@@ -222,10 +269,23 @@ const ScheduleUpload = () => {
           rows.push({
             match_id_csv: matchId,
             jornada_number: jornadaNum,
+            stage,
+            leg,
             home_team: home,
             away_team: away,
             kickoff_utc: parsedDate.toISOString(),
           });
+        }
+      }
+
+      // Validate that all rows of the same jornada_number agree on stage/leg
+      const jornadaMeta = new Map<number, { stage: string; leg: string }>();
+      for (const r of rows) {
+        const existing = jornadaMeta.get(r.jornada_number);
+        if (!existing) {
+          jornadaMeta.set(r.jornada_number, { stage: r.stage, leg: r.leg });
+        } else if (existing.stage !== r.stage || existing.leg !== r.leg) {
+          errors.push(`Jornada ${r.jornada_number}: rows disagree on stage/leg (must be uniform)`);
         }
       }
 
@@ -235,9 +295,10 @@ const ScheduleUpload = () => {
         return;
       }
 
-      const jornadaNumbers = [...new Set(rows.map(r => r.jornada_number))];
+      const jornadaNumbers = [...jornadaMeta.keys()];
 
       for (const num of jornadaNumbers) {
+        const meta = jornadaMeta.get(num)!;
         const { data: existing } = await supabase
           .from('jornadas')
           .select('id')
@@ -245,7 +306,12 @@ const ScheduleUpload = () => {
           .maybeSingle();
 
         if (!existing) {
-          await supabase.from('jornadas').insert({ jornada_number: num, status: 'open' });
+          await supabase.from('jornadas').insert({
+            jornada_number: num,
+            status: 'open',
+            stage: meta.stage,
+            leg: meta.leg,
+          });
         }
       }
 
@@ -288,16 +354,19 @@ const ScheduleUpload = () => {
       </p>
 
       <div className="mb-4 p-4 rounded-lg border border-border bg-muted/30">
-        <p className="text-xs font-semibold text-foreground mb-2">Required columns</p>
-        <code className="block text-xs text-foreground mb-3">match_id, jornada_number, home_team, away_team, kickoff_utc</code>
-        <p className="text-xs font-semibold text-foreground mb-1">Example</p>
-        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto">{`match_id,jornada_number,home_team,away_team,kickoff_utc
-MX-2026-J15-01,15,América,Chivas,2026-04-21T02:00:00Z
-MX-2026-J15-02,15,Cruz Azul,Pumas,2026-04-21T04:00:00Z`}</pre>
+        <p className="text-xs font-semibold text-foreground mb-2">Columns</p>
+        <code className="block text-xs text-foreground mb-3">match_id, jornada_number, stage, leg, home_team, away_team, kickoff_utc</code>
+        <p className="text-xs font-semibold text-foreground mb-1">Example (regular season + playoffs)</p>
+        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto">{`match_id,jornada_number,stage,leg,home_team,away_team,kickoff_utc
+MX-2026-J17-01,17,regular,single,América,Chivas,2026-04-28T02:00:00Z
+MX-2026-CF-01-IDA,19,cuartos,ida,América,Pumas,2026-05-08T02:00:00Z
+MX-2026-CF-01-VTA,20,cuartos,vuelta,Pumas,América,2026-05-11T02:00:00Z`}</pre>
         <ul className="mt-3 text-xs text-muted-foreground space-y-1">
           <li>• <code>home_team</code> / <code>away_team</code> must match names in the <code>teams</code> table exactly</li>
           <li>• <code>kickoff_utc</code> in ISO 8601 UTC format</li>
           <li>• <code>match_id</code> is the stable ID used later in Results Upload (case-sensitive)</li>
+          <li>• <code>stage</code> optional — values: <code>regular</code> (default), <code>cuartos</code>, <code>semifinal</code>, <code>final</code></li>
+          <li>• <code>leg</code> optional — values: <code>single</code> (default), <code>ida</code>, <code>vuelta</code>. Each leg is its own jornada_number.</li>
         </ul>
       </div>
 

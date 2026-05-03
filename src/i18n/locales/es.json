@@ -90,7 +90,7 @@
   "picks": {
     "noJornadaTitle": "No hay jornada activa en este momento.",
     "noJornadaSub": "¡Vuelve pronto!",
-    "heading": "Jornada {{number}} — Haz tus pronósticos",
+    "heading": "{{label}} — Haz tus pronósticos",
     "lockedBadge": "🔒 Jornada cerrada",
     "lockedDesc": "La jornada ya comenzó. No puedes cambiar tus picks.",
     "saving": "Guardando...",
@@ -118,7 +118,7 @@
     "jornadaLabel": "Jornada",
     "pickJornada": "Elige una jornada",
     "jornadaItem": "Jornada {{number}}",
-    "jornadaCompleted": "Jornada {{number}} completada",
+    "jornadaCompleted": "{{label}} completada",
     "points": "puntos",
     "pointsThisJornada": "+{{n}} pts esta jornada",
     "heading": "Resultados",
@@ -212,6 +212,17 @@
     "addPhoneToActivate": "Agrega un número para activarlo",
     "achievements": "Mis logros",
     "signOut": "Cerrar sesión"
+  },
+  "stage": {
+    "regular": "Regular",
+    "cuartos": "Cuartos",
+    "semifinal": "Semifinal",
+    "final": "Final"
+  },
+  "leg": {
+    "single": "Único",
+    "ida": "Ida",
+    "vuelta": "Vuelta"
   },
   "about": {
     "title": "Acerca de FC Quiniela",
