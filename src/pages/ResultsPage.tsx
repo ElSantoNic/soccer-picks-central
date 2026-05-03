@@ -80,8 +80,8 @@ const ResultsPage = () => {
         return;
       }
 
-      const jornadaById = new Map<string, number>(
-        (jornadaRows ?? []).map((j) => [j.id, j.jornada_number]),
+      const jornadaById = new Map<string, { jornada_number: number; stage: string; leg: string }>(
+        (jornadaRows ?? []).map((j: any) => [j.id, { jornada_number: j.jornada_number, stage: j.stage ?? 'regular', leg: j.leg ?? 'single' }]),
       );
 
       const { data: pickRows, error: pickErr } = await supabase
