@@ -7,40 +7,75 @@ const corsHeaders = {
 
 const ALLOWED_EMAIL = (Deno.env.get("ADMIN_ALLOWED_EMAIL") ?? "").trim().toLowerCase();
 
+// Constant-time string comparison to prevent timing attacks on the setup secret.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+const json = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { email, newPassword, setupSecret } = await req.json();
+  if (req.method !== "POST") {
+    return json(405, { error: "Method not allowed" });
+  }
 
-    if (!email || !newPassword || !setupSecret) {
-      return new Response(JSON.stringify({ error: "Missing fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+  try {
+    let payload: any;
+    try {
+      payload = await req.json();
+    } catch {
+      return json(400, { error: "Invalid JSON" });
+    }
+
+    const { email, newPassword, setupSecret } = payload ?? {};
+
+    if (
+      typeof email !== "string" ||
+      typeof newPassword !== "string" ||
+      typeof setupSecret !== "string"
+    ) {
+      return json(400, { error: "Missing or invalid fields" });
     }
 
     const expected = Deno.env.get("ADMIN_PASSWORD_SETUP_SECRET");
-    if (!expected || setupSecret !== expected) {
-      return new Response(JSON.stringify({ error: "Invalid setup secret" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const emailNorm = email.trim().toLowerCase();
+
+    // Generic 401 for both bad secret and disallowed email so callers cannot
+    // distinguish which check failed.
+    if (
+      !expected ||
+      !ALLOWED_EMAIL ||
+      !timingSafeEqual(setupSecret, expected) ||
+      emailNorm !== ALLOWED_EMAIL
+    ) {
+      console.warn("admin-set-password: unauthorized attempt", {
+        ip: req.headers.get("x-forwarded-for") ?? "unknown",
       });
+      return json(401, { error: "Unauthorized" });
     }
 
-    if (!ALLOWED_EMAIL || email.trim().toLowerCase() !== ALLOWED_EMAIL) {
-      return new Response(JSON.stringify({ error: "Email not allowed" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (typeof newPassword !== "string" || newPassword.length < 8) {
-      return new Response(JSON.stringify({ error: "Password must be at least 8 characters" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Stronger password policy.
+    if (
+      newPassword.length < 12 ||
+      !/[A-Za-z]/.test(newPassword) ||
+      !/[0-9]/.test(newPassword)
+    ) {
+      return json(400, {
+        error:
+          "Password must be at least 12 characters and contain a letter and a number",
       });
     }
 
@@ -49,7 +84,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Find user by email
     const { data: list, error: listErr } = await admin.auth.admin.listUsers({
       page: 1,
       perPage: 200,
@@ -59,7 +93,6 @@ Deno.serve(async (req) => {
     let user = list.users.find((u) => u.email?.toLowerCase() === ALLOWED_EMAIL);
 
     if (!user) {
-      // Create the user with the password
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
         email: ALLOWED_EMAIL,
         password: newPassword,
@@ -75,14 +108,10 @@ Deno.serve(async (req) => {
       if (updErr) throw updErr;
     }
 
-    return new Response(JSON.stringify({ success: true, userId: user?.id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Do not leak admin user id.
+    return json(200, { success: true });
   } catch (err: any) {
     console.error("admin-set-password error:", err);
-    return new Response(JSON.stringify({ error: err.message || "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json(500, { error: "Internal error" });
   }
 });
