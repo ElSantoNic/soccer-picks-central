@@ -1,48 +1,75 @@
-## Feedback first
+# Liga MX Liguilla Foundation
 
-Yes — the current single "Tabla" view conflates two different questions:
+Add playoff (Cuartos / Semifinal / Final, Ida / Vuelta) support without changing scoring or lock logic. Each leg remains its own jornada, scored independently as 1/X/2.
 
-- "Who won this week?" (jornada points)
-- "Who's winning the season?" (total points)
+## 1. Database migration
 
-Right now we sort by `points_total` and show the small `+N pts` jornada delta as secondary text. Users scanning quickly read the big number as "the score," so the jornada result gets lost. Splitting them is the right call.
+Add two nullable columns to `jornadas`:
 
-## Proposed change
+- `stage text NOT NULL DEFAULT 'regular'` — values: `regular`, `cuartos`, `semifinal`, `final`
+- `leg text NOT NULL DEFAULT 'single'` — values: `single`, `ida`, `vuelta`
 
-Inside the existing `Tabla` tab on `LeaguePage`, add a sub-toggle with two views:
+Add a CHECK constraint restricting allowed values for both. Backfill all existing rows with `regular` / `single` (covered by defaults).
 
-1. **Jornada** (default when there's an active/just-closed jornada) — sorted by `points_jornada` desc, big number = jornada points, small text = season total.
-2. **General** — sorted by `points_total` desc, big number = season total, small text = `+N pts` this jornada (current behavior).
+No changes to `matches`, `picks`, RLS, or any trigger. The existing "one open jornada" rule continues to work — a Cuartos Ida leg is just the next open jornada.
 
-The `Miembros` tab stays as-is.
+## 2. CSV format
 
-### UI sketch
+### Schedule CSV — adds 2 optional columns
 
-```text
-[ Tabla ] [ Miembros ]
- ├─ ( Jornada | General )      ← segmented control
- └─ ranked rows
+```
+match_id,jornada_number,stage,leg,home_team,away_team,kickoff_utc
 ```
 
-- Segmented control sits just under the tab bar, matches existing pill/tab styling.
-- Medals (🥇🥈🥉) reflect the active sort.
-- Add a small caption above the list: "Jornada 12 · cierra dom 8pm" (General view shows "Temporada 2025/26"). Pulls from the current open/most-recent jornada.
+- `stage` optional → defaults to `regular`
+- `leg` optional → defaults to `single`
+- Existing regular-season CSVs keep working unchanged
 
-### Technical notes
+Parser changes in `ScheduleUpload` (`AdminPage.tsx`):
+- Detect `stage` / `leg` columns by header name
+- Validate values against allowed sets; report row-level errors
+- When auto-creating a jornada (jornada_number not yet in DB), insert with the row's `stage` and `leg`
+- All rows sharing a `jornada_number` must agree on `stage`/`leg` (validation error otherwise)
 
-- `LeaderboardRow` gains a `mode: 'jornada' | 'overall'` prop. Swap which value is the bold primary number vs the muted secondary line. No data shape changes.
-- `LeaguePage` adds `standingsView` state, sorts `members` by the chosen field before rendering.
-- Fetch the current jornada label once (cheap query: `jornadas` order by `jornada_number desc limit 1`) for the caption. If none, hide the caption.
-- i18n keys to add (en/es): `league.standingsJornada`, `league.standingsOverall`, `league.jornadaLabel`, `league.seasonLabel`.
-- Empty-jornada handling: if every member has `points_jornada === 0`, show a small hint "Aún no hay resultados de esta jornada" in the Jornada view instead of an all-zeros list.
+### Results CSV — no changes
 
-### Files
+Still `match_id, home_score, away_score`. Per-leg 1/X/2 scoring unchanged.
 
-- `src/pages/LeaguePage.tsx` — add sub-tab state, sort logic, caption.
-- `src/components/LeaderboardRow.tsx` — `mode` prop, conditional primary/secondary number.
-- `src/i18n/locales/en.json`, `src/i18n/locales/es.json` — new strings.
+## 3. Admin UI
 
-### Out of scope
+`JornadaManager`:
+- Add `Stage` and `Leg` selectors next to the Create form (default Regular / Single)
+- Show stage/leg as a small badge next to "Jornada N" in the list (hide badge when regular/single)
 
-- No schema changes, no new RPCs.
-- Not adding per-jornada history navigation yet (could be a follow-up: tap the caption → pick a past jornada). Happy to scope that next if you want it.
+`ScheduleUpload`: update the documentation block to show the new columns and a playoff example row.
+
+## 4. App UI labels
+
+Add a small helper `formatJornadaLabel(jornada)` and use it everywhere the current "Jornada N" label is rendered:
+
+- `LeaguePage` header (`league.jornadaLabel`)
+- `PicksPage` header
+- `ResultsPage` jornada list + completed banner
+
+Output:
+- Regular season → `Jornada 17` (unchanged)
+- Playoffs → `Cuartos — Ida`, `Cuartos — Vuelta`, `Semifinal — Ida`, `Final — Vuelta`, etc.
+
+## 5. i18n
+
+Add to `en.json` / `es.json` under a new `stage` namespace:
+
+```
+stage.regular, stage.cuartos, stage.semifinal, stage.final
+leg.ida, leg.vuelta, leg.single
+```
+
+EN: "Quarterfinals / Semifinal / Final / 1st Leg / 2nd Leg"
+ES: "Cuartos / Semifinal / Final / Ida / Vuelta"
+
+## Out of scope (follow-up)
+
+- Aggregate-winner picks ("who advances")
+- Bracket visualization
+- Round-specific point multipliers
+- Away-goals / penalty tiebreaker logic
