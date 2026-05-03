@@ -544,7 +544,8 @@ const ResultsUpload = () => {
           .eq('match_id_csv', matchId);
 
         if (error) {
-          errors.push(`Row ${i + 1}: ${error.message}`);
+          console.error(`Update match ${matchId} failed:`, error);
+          errors.push(`Row ${i + 1}: could not update match — check match_id and try again`);
         } else {
           updated++;
         }
