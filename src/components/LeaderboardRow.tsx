@@ -21,7 +21,7 @@ const LeaderboardRow = ({ rank, member, isCurrentUser, mode = 'overall' }: Leade
   const { t } = useTranslation();
   const primary = mode === 'jornada' ? member.points_jornada : member.points_total;
   const secondary = mode === 'jornada'
-    ? `${member.points_total} total`
+    ? t('league.totalPoints', { n: member.points_total })
     : `+${member.points_jornada} pts`;
 
   return (
