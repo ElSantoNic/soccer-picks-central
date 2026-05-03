@@ -78,6 +78,7 @@ const LeaguePage = () => {
         setLeague({ ...leagueRes.data, join_code });
       }
       if (membersRes.data) setMembers(membersRes.data as LeagueMember[]);
+      if (jornadaRes.data) setCurrentJornada(jornadaRes.data);
       setLoading(false);
     };
     fetchData();
