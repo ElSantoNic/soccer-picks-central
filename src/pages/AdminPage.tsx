@@ -232,12 +232,13 @@ const ScheduleUpload = () => {
       const VALID_LEGS = new Set(['single', 'ida', 'vuelta']);
 
       const errors: string[] = [];
-      const rows: { match_id_csv: string; jornada_number: number; stage: string; leg: string; home_team: string; away_team: string; kickoff_utc: string }[] = [];
+      const rows: { match_id_csv: string; jornada_number: number; stage: string; leg: string; home_team: string; away_team: string; kickoff_utc: string; row_number: number }[] = [];
 
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
         const cols = line.split(',').map(c => c.trim());
+        const rowNum = i + 1;
 
         const home = cols[homeIdx];
         const away = cols[awayIdx];
@@ -247,25 +248,31 @@ const ScheduleUpload = () => {
         const stage = (stageIdx !== -1 ? (cols[stageIdx] || 'regular') : 'regular').toLowerCase();
         const leg = (legIdx !== -1 ? (cols[legIdx] || 'single') : 'single').toLowerCase();
 
+        let rowOk = true;
         if (!VALID_STAGES.has(stage)) {
-          errors.push(`Row ${i + 1}: invalid stage "${stage}" (must be regular|cuartos|semifinal|final)`);
+          errors.push(`Row ${rowNum}: invalid stage "${stage}" (must be regular|cuartos|semifinal|final)`);
+          rowOk = false;
         }
         if (!VALID_LEGS.has(leg)) {
-          errors.push(`Row ${i + 1}: invalid leg "${leg}" (must be single|ida|vuelta)`);
+          errors.push(`Row ${rowNum}: invalid leg "${leg}" (must be single|ida|vuelta)`);
+          rowOk = false;
         }
         if (!validTeams.has(home)) {
-          errors.push(`Row ${i + 1}: team "${home}" not in DB (check teams table)`);
+          errors.push(`Row ${rowNum}: team "${home}" not in DB (check teams table)`);
+          rowOk = false;
         }
         if (!validTeams.has(away)) {
-          errors.push(`Row ${i + 1}: team "${away}" not in DB (check teams table)`);
+          errors.push(`Row ${rowNum}: team "${away}" not in DB (check teams table)`);
+          rowOk = false;
         }
 
         const parsedDate = new Date(kickoff);
         if (isNaN(parsedDate.getTime())) {
-          errors.push(`Row ${i + 1}: invalid date "${kickoff}"`);
+          errors.push(`Row ${rowNum}: invalid date "${kickoff}"`);
+          rowOk = false;
         }
 
-        if (errors.length === 0) {
+        if (rowOk) {
           rows.push({
             match_id_csv: matchId,
             jornada_number: jornadaNum,
@@ -274,18 +281,47 @@ const ScheduleUpload = () => {
             home_team: home,
             away_team: away,
             kickoff_utc: parsedDate.toISOString(),
+            row_number: rowNum,
           });
         }
       }
 
-      // Validate that all rows of the same jornada_number agree on stage/leg
-      const jornadaMeta = new Map<number, { stage: string; leg: string }>();
+      // Validate that all rows of the same jornada_number agree on stage/leg.
+      // Group rows by jornada_number, then by their (stage|leg) combo so we can
+      // surface every conflicting variant with its row numbers.
+      const jornadaGroups = new Map<number, Map<string, number[]>>();
       for (const r of rows) {
-        const existing = jornadaMeta.get(r.jornada_number);
-        if (!existing) {
-          jornadaMeta.set(r.jornada_number, { stage: r.stage, leg: r.leg });
-        } else if (existing.stage !== r.stage || existing.leg !== r.leg) {
-          errors.push(`Jornada ${r.jornada_number}: rows disagree on stage/leg (must be uniform)`);
+        const comboKey = `${r.stage}|${r.leg}`;
+        let combos = jornadaGroups.get(r.jornada_number);
+        if (!combos) {
+          combos = new Map<string, number[]>();
+          jornadaGroups.set(r.jornada_number, combos);
+        }
+        const list = combos.get(comboKey) ?? [];
+        list.push(r.row_number);
+        combos.set(comboKey, list);
+      }
+
+      const jornadaMeta = new Map<number, { stage: string; leg: string }>();
+      const reportedConflicts = new Set<number>();
+      for (const [jNum, combos] of jornadaGroups.entries()) {
+        if (combos.size === 1) {
+          const [comboKey] = [...combos.keys()];
+          const [stage, leg] = comboKey.split('|');
+          jornadaMeta.set(jNum, { stage, leg });
+        } else if (!reportedConflicts.has(jNum)) {
+          reportedConflicts.add(jNum);
+          const variants = [...combos.entries()]
+            .map(([k, rowList]) => {
+              const [s, l] = k.split('|');
+              const preview = rowList.slice(0, 3).join(', ');
+              const more = rowList.length > 3 ? ` …+${rowList.length - 3} more` : '';
+              return `stage=${s}, leg=${l} (rows ${preview}${more})`;
+            })
+            .join(' vs ');
+          errors.push(
+            `Jornada ${jNum}: rows have conflicting stage/leg values — all rows sharing a jornada_number must use the same stage and leg. Found: ${variants}.`,
+          );
         }
       }
 
