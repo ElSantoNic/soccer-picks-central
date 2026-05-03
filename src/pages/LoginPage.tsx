@@ -53,7 +53,8 @@ const LoginPage = () => {
       toast.success(t("auth.okWelcome"));
       navigate("/picks");
     } catch (err: any) {
-      toast.error(err.message || t("auth.errInvalidCreds"));
+      console.error("Password login error:", err);
+      toast.error(t("auth.errInvalidCreds"));
     } finally {
       setLoading(false);
     }
@@ -68,7 +69,8 @@ const LoginPage = () => {
       });
       if (error) throw error;
     } catch (err: any) {
-      toast.error(err.message || t("auth.errGoogle"));
+      console.error("Google login error:", err);
+      toast.error(t("auth.errGoogle"));
       setLoading(false);
     }
   };
@@ -103,7 +105,8 @@ const LoginPage = () => {
       }
       setStep("otp");
     } catch (err: any) {
-      toast.error(err.message || t("auth.errSendCode"));
+      console.error("Send OTP error:", err);
+      toast.error(t("auth.errSendCode"));
     } finally {
       setLoading(false);
     }
@@ -126,7 +129,8 @@ const LoginPage = () => {
       toast.success(t("auth.okWelcome"));
       navigate("/picks");
     } catch (err: any) {
-      toast.error(err.message || t("auth.errOtpInvalid"));
+      console.error("Verify OTP error:", err);
+      toast.error(t("auth.errOtpInvalid"));
     } finally {
       setLoading(false);
     }
@@ -161,7 +165,8 @@ const LoginPage = () => {
       setSetupSecret("");
       setSetupPassword("");
     } catch (err: any) {
-      toast.error(err.message || t("auth.errSetupPassword"));
+      console.error("Setup password error:", err);
+      toast.error(t("auth.errSetupPassword"));
     } finally {
       setSetupLoading(false);
     }
