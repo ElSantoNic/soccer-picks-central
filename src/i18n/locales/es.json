@@ -118,7 +118,7 @@
     "jornadaLabel": "Jornada",
     "pickJornada": "Elige una jornada",
     "jornadaItem": "Jornada {{number}}",
-    "jornadaCompleted": "Jornada {{number}} completada",
+    "jornadaCompleted": "{{label}} completada",
     "points": "puntos",
     "pointsThisJornada": "+{{n}} pts esta jornada",
     "heading": "Resultados",
