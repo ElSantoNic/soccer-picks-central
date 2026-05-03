@@ -82,6 +82,8 @@ const JornadaManager = () => {
       jornada_number: parseInt(newNumber),
       season: newSeason,
       status: 'open',
+      stage: newStage,
+      leg: newLeg,
     });
     if (error) {
       toast.error(error.message);
