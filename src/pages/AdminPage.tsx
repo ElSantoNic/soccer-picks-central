@@ -75,7 +75,8 @@ const JornadaManager = () => {
       .update({ status: 'locked' })
       .eq('status', 'open');
     if (lockError) {
-      toast.error('Failed to lock previous jornadas: ' + lockError.message);
+      console.error('Lock previous jornadas failed:', lockError);
+      toast.error('Failed to lock previous jornadas');
       return;
     }
     const { error } = await supabase.from('jornadas').insert({
@@ -86,7 +87,8 @@ const JornadaManager = () => {
       leg: newLeg,
     });
     if (error) {
-      toast.error(error.message);
+      console.error('Create jornada failed:', error);
+      toast.error('Failed to create jornada');
     } else {
       toast.success(`Jornada ${newNumber} created (previous open jornadas locked)`);
       setNewNumber('');
@@ -96,8 +98,10 @@ const JornadaManager = () => {
 
   const updateStatus = async (id: string, status: string) => {
     const { error } = await supabase.from('jornadas').update({ status }).eq('id', id);
-    if (error) toast.error(error.message);
-    else fetchJornadas();
+    if (error) {
+      console.error('Update jornada status failed:', error);
+      toast.error('Failed to update jornada status');
+    } else fetchJornadas();
   };
 
   return (
@@ -377,7 +381,10 @@ const ScheduleUpload = () => {
 
       const { error: insertError } = await supabase.from('matches').upsert(matchInserts, { onConflict: 'match_id_csv' });
 
-      if (insertError) throw new Error(insertError.message);
+      if (insertError) {
+        console.error('Match upsert failed:', insertError);
+        throw new Error('Failed to import matches — check CSV and try again');
+      }
 
       setResult({
         success: true,
@@ -386,7 +393,8 @@ const ScheduleUpload = () => {
         stats,
       });
     } catch (err: any) {
-      setResult({ success: false, summary: err.message, errors: [] });
+      console.error('Schedule upload failed:', err);
+      setResult({ success: false, summary: err.message || 'Upload failed', errors: [] });
     } finally {
       setIsUploading(false);
     }
@@ -540,7 +548,8 @@ const ResultsUpload = () => {
           .eq('match_id_csv', matchId);
 
         if (error) {
-          errors.push(`Row ${i + 1}: ${error.message}`);
+          console.error(`Update match ${matchId} failed:`, error);
+          errors.push(`Row ${i + 1}: could not update match — check match_id and try again`);
         } else {
           updated++;
         }
