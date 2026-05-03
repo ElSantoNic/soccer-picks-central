@@ -162,8 +162,13 @@ const JornadaManager = () => {
         <div className="space-y-2">
           {jornadas.map(j => (
             <div key={j.id} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
-              <div>
+              <div className="flex items-center gap-2">
                 <span className="font-semibold">Jornada {j.jornada_number}</span>
+                {(j.stage && j.stage !== 'regular') && (
+                  <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-accent/20 text-accent-foreground font-semibold">
+                    {j.stage}{j.leg && j.leg !== 'single' ? ` · ${j.leg}` : ''}
+                  </span>
+                )}
                 <span className="text-xs text-muted-foreground ml-2">{j.season}</span>
               </div>
               <div className="flex items-center gap-2">
