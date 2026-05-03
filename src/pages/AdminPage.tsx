@@ -458,6 +458,22 @@ MX-2026-FN-01-VTA,24,final,vuelta,Monterrey,América,2026-05-25T02:00:00Z`}</pre
             {result.success ? <CheckCircle className="w-5 h-5 text-success" /> : <AlertCircle className="w-5 h-5 text-destructive" />}
             <span className={`font-semibold text-sm ${result.success ? 'text-success' : 'text-destructive'}`}>{result.summary}</span>
           </div>
+          {result.stats && (
+            <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+              <div className="rounded border border-border bg-background/60 p-2">
+                <div className="text-muted-foreground">Total rows</div>
+                <div className="text-base font-bold text-foreground">{result.stats.totalRows}</div>
+              </div>
+              <div className="rounded border border-border bg-background/60 p-2">
+                <div className="text-muted-foreground">Valid rows</div>
+                <div className="text-base font-bold text-success">{result.stats.validRows}</div>
+              </div>
+              <div className="rounded border border-border bg-background/60 p-2">
+                <div className="text-muted-foreground">Conflict jornadas</div>
+                <div className={`text-base font-bold ${result.stats.conflictJornadas > 0 ? 'text-destructive' : 'text-foreground'}`}>{result.stats.conflictJornadas}</div>
+              </div>
+            </div>
+          )}
           {result.errors.length > 0 && (
             <ul className="mt-2 space-y-1">
               {result.errors.map((e, i) => (
