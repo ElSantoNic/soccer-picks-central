@@ -75,7 +75,8 @@ const JornadaManager = () => {
       .update({ status: 'locked' })
       .eq('status', 'open');
     if (lockError) {
-      toast.error('Failed to lock previous jornadas: ' + lockError.message);
+      console.error('Lock previous jornadas failed:', lockError);
+      toast.error('Failed to lock previous jornadas');
       return;
     }
     const { error } = await supabase.from('jornadas').insert({
