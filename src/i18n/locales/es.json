@@ -90,7 +90,7 @@
   "picks": {
     "noJornadaTitle": "No hay jornada activa en este momento.",
     "noJornadaSub": "¡Vuelve pronto!",
-    "heading": "Jornada {{number}} — Haz tus pronósticos",
+    "heading": "{{label}} — Haz tus pronósticos",
     "lockedBadge": "🔒 Jornada cerrada",
     "lockedDesc": "La jornada ya comenzó. No puedes cambiar tus picks.",
     "saving": "Guardando...",
