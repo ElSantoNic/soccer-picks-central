@@ -226,7 +226,7 @@ const ResultsPage = () => {
                   <SelectContent>
                     {bundles.map((b) => (
                       <SelectItem key={b.id} value={b.id}>
-                        {t("results.jornadaItem", { number: b.jornada_number })}
+                        {formatJornadaLabel(t, b, "results.jornadaItem")}
                       </SelectItem>
                     ))}
                   </SelectContent>
