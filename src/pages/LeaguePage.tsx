@@ -78,7 +78,10 @@ const LeaguePage = () => {
         setLeague({ ...leagueRes.data, join_code });
       }
       if (membersRes.data) setMembers(membersRes.data as LeagueMember[]);
-      if (jornadaRes.data) setCurrentJornada(jornadaRes.data);
+      if (jornadaRes.data) {
+        const j: any = jornadaRes.data;
+        setCurrentJornada({ jornada_number: j.jornada_number, season: j.season, stage: j.stage ?? 'regular', leg: j.leg ?? 'single' });
+      }
       setLoading(false);
     };
     fetchData();
