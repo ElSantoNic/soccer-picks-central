@@ -90,7 +90,7 @@
   "picks": {
     "noJornadaTitle": "No active matchday right now.",
     "noJornadaSub": "Come back soon!",
-    "heading": "Matchday {{number}} — Make your predictions",
+    "heading": "{{label}} — Make your predictions",
     "lockedBadge": "🔒 Matchday locked",
     "lockedDesc": "The matchday has started. You can't change your picks.",
     "saving": "Saving...",
