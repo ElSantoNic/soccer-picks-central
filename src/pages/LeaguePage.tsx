@@ -43,6 +43,8 @@ const LeaguePage = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
+  const [standingsView, setStandingsView] = useState<'jornada' | 'overall'>('jornada');
+  const [currentJornada, setCurrentJornada] = useState<{ jornada_number: number; season: string } | null>(null);
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,13 +54,19 @@ const LeaguePage = () => {
   useEffect(() => {
     if (!leagueId) return;
     const fetchData = async () => {
-      const [leagueRes, membersRes] = await Promise.all([
+      const [leagueRes, membersRes, jornadaRes] = await Promise.all([
         supabase
           .from('leagues')
           .select('id, name, description, created_by')
           .eq('id', leagueId)
           .single(),
         supabase.from('league_members').select('*').eq('league_id', leagueId),
+        supabase
+          .from('jornadas')
+          .select('jornada_number, season')
+          .order('jornada_number', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
       if (leagueRes.data) {
         let join_code: string | null = null;
@@ -70,6 +78,7 @@ const LeaguePage = () => {
         setLeague({ ...leagueRes.data, join_code });
       }
       if (membersRes.data) setMembers(membersRes.data as LeagueMember[]);
+      if (jornadaRes.data) setCurrentJornada(jornadaRes.data);
       setLoading(false);
     };
     fetchData();
@@ -95,7 +104,12 @@ const LeaguePage = () => {
     setMemberToRemove(null);
   };
 
-  const sorted = [...members].sort((a, b) => b.points_total - a.points_total);
+  const sorted = [...members].sort((a, b) =>
+    standingsView === 'jornada'
+      ? b.points_jornada - a.points_jornada || b.points_total - a.points_total
+      : b.points_total - a.points_total
+  );
+  const allJornadaZero = members.length > 0 && members.every(m => m.points_jornada === 0);
 
   if (loading) {
     return (
@@ -168,15 +182,46 @@ const LeaguePage = () => {
             <p className="text-sm text-muted-foreground">{t("league.noMembersDesc")}</p>
           </div>
         ) : activeTab === 'tabla' ? (
-          <div className="bg-card">
-            {sorted.map((member, i) => (
-              <LeaderboardRow
-                key={member.id}
-                rank={i + 1}
-                member={member}
-                isCurrentUser={false}
-              />
-            ))}
+          <div>
+            <div className="flex gap-1 p-2 bg-card border-b border-border">
+              {(['jornada', 'overall'] as const).map(view => (
+                <button
+                  key={view}
+                  onClick={() => setStandingsView(view)}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                    standingsView === view
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-secondary'
+                  }`}
+                >
+                  {view === 'jornada' ? t('league.standingsJornada') : t('league.standingsOverall')}
+                </button>
+              ))}
+            </div>
+            {currentJornada && (
+              <p className="px-4 py-2 text-[11px] text-muted-foreground bg-card border-b border-border">
+                {standingsView === 'jornada'
+                  ? t('league.jornadaLabel', { number: currentJornada.jornada_number })
+                  : t('league.seasonLabel', { season: currentJornada.season })}
+              </p>
+            )}
+            {standingsView === 'jornada' && allJornadaZero ? (
+              <div className="text-center py-12 bg-card">
+                <p className="text-sm text-muted-foreground">{t('league.noJornadaResults')}</p>
+              </div>
+            ) : (
+              <div className="bg-card">
+                {sorted.map((member, i) => (
+                  <LeaderboardRow
+                    key={member.id}
+                    rank={i + 1}
+                    member={member}
+                    isCurrentUser={!!user && member.user_id === user.id}
+                    mode={standingsView}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="p-4 space-y-3">

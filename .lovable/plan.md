@@ -1,65 +1,48 @@
-# Fix: Results upload fails with "Not allowed to modify points, badges, or membership identity fields"
+## Feedback first
 
-## Root cause
+Yes — the current single "Tabla" view conflates two different questions:
 
-When an admin uploads results, `Results Upload` updates `matches.result_1x2`. This fires the `score_match_results` trigger (SECURITY DEFINER), which updates `league_members.points_total` and `points_jornada` for affected users.
+- "Who won this week?" (jornada points)
+- "Who's winning the season?" (total points)
 
-However, the `prevent_league_member_points_tampering` trigger blocks any change to those columns unless:
-- `auth.uid()` is NULL (system context), OR
-- the session GUC `app.system_write` is `'on'`
+Right now we sort by `points_total` and show the small `+N pts` jornada delta as secondary text. Users scanning quickly read the big number as "the score," so the jornada result gets lost. Splitting them is the right call.
 
-Since the admin is authenticated, `auth.uid()` is not NULL, and the scoring trigger never sets the GUC — so every league_members update is rejected. That's exactly the 9 errors shown (one per user with picks on those matches).
+## Proposed change
 
-## Fix
+Inside the existing `Tabla` tab on `LeaguePage`, add a sub-toggle with two views:
 
-Update the `score_match_results` function to set `app.system_write='on'` (transaction-local) before the league_members UPDATE, mirroring the pattern already used in `sync_league_member_display_name`.
+1. **Jornada** (default when there's an active/just-closed jornada) — sorted by `points_jornada` desc, big number = jornada points, small text = season total.
+2. **General** — sorted by `points_total` desc, big number = season total, small text = `+N pts` this jornada (current behavior).
 
-### Migration (single function replacement)
+The `Miembros` tab stays as-is.
 
-```sql
-CREATE OR REPLACE FUNCTION public.score_match_results()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  open_jornada_id uuid;
-  affected_user uuid;
-BEGIN
-  IF NEW.result_1x2 IS NULL THEN RETURN NEW; END IF;
-  IF OLD.result_1x2 IS NOT DISTINCT FROM NEW.result_1x2 THEN RETURN NEW; END IF;
-  IF NEW.result_1x2 NOT IN ('1', 'X', '2') THEN RETURN NEW; END IF;
+### UI sketch
 
-  UPDATE public.picks
-  SET is_correct = (pick = NEW.result_1x2),
-      points_awarded = CASE WHEN pick = NEW.result_1x2 THEN 3 ELSE 0 END
-  WHERE match_id = NEW.id;
-
-  SELECT id INTO open_jornada_id
-  FROM public.jornadas WHERE status = 'open'
-  ORDER BY jornada_number DESC LIMIT 1;
-
-  -- Authorize the system write so the tamper guard lets us through
-  PERFORM set_config('app.system_write', 'on', true);
-
-  FOR affected_user IN
-    SELECT DISTINCT user_id FROM public.picks WHERE match_id = NEW.id
-  LOOP
-    UPDATE public.league_members lm
-    SET points_total = COALESCE((SELECT SUM(points_awarded) FROM public.picks WHERE user_id = affected_user), 0),
-        points_jornada = COALESCE((SELECT SUM(points_awarded) FROM public.picks
-                                   WHERE user_id = affected_user AND jornada_id = open_jornada_id), 0)
-    WHERE lm.user_id = affected_user;
-  END LOOP;
-
-  RETURN NEW;
-END;
-$function$;
+```text
+[ Tabla ] [ Miembros ]
+ ├─ ( Jornada | General )      ← segmented control
+ └─ ranked rows
 ```
 
-## After the fix
+- Segmented control sits just under the tab bar, matches existing pill/tab styling.
+- Medals (🥇🥈🥉) reflect the active sort.
+- Add a small caption above the list: "Jornada 12 · cierra dom 8pm" (General view shows "Temporada 2025/26"). Pulls from the current open/most-recent jornada.
 
-Re-upload `match_results-2.csv` from the Admin → Results Upload tab. The 9 rows should update successfully and league standings will refresh.
+### Technical notes
 
-No frontend or RLS changes needed.
+- `LeaderboardRow` gains a `mode: 'jornada' | 'overall'` prop. Swap which value is the bold primary number vs the muted secondary line. No data shape changes.
+- `LeaguePage` adds `standingsView` state, sorts `members` by the chosen field before rendering.
+- Fetch the current jornada label once (cheap query: `jornadas` order by `jornada_number desc limit 1`) for the caption. If none, hide the caption.
+- i18n keys to add (en/es): `league.standingsJornada`, `league.standingsOverall`, `league.jornadaLabel`, `league.seasonLabel`.
+- Empty-jornada handling: if every member has `points_jornada === 0`, show a small hint "Aún no hay resultados de esta jornada" in the Jornada view instead of an all-zeros list.
+
+### Files
+
+- `src/pages/LeaguePage.tsx` — add sub-tab state, sort logic, caption.
+- `src/components/LeaderboardRow.tsx` — `mode` prop, conditional primary/secondary number.
+- `src/i18n/locales/en.json`, `src/i18n/locales/es.json` — new strings.
+
+### Out of scope
+
+- No schema changes, no new RPCs.
+- Not adding per-jornada history navigation yet (could be a follow-up: tap the caption → pick a past jornada). Happy to scope that next if you want it.
