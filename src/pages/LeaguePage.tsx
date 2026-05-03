@@ -63,7 +63,7 @@ const LeaguePage = () => {
         supabase.from('league_members').select('*').eq('league_id', leagueId),
         supabase
           .from('jornadas')
-          .select('jornada_number, season')
+          .select('jornada_number, season, stage, leg')
           .order('jornada_number', { ascending: false })
           .limit(1)
           .maybeSingle(),
