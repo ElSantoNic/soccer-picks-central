@@ -98,8 +98,10 @@ const JornadaManager = () => {
 
   const updateStatus = async (id: string, status: string) => {
     const { error } = await supabase.from('jornadas').update({ status }).eq('id', id);
-    if (error) toast.error(error.message);
-    else fetchJornadas();
+    if (error) {
+      console.error('Update jornada status failed:', error);
+      toast.error('Failed to update jornada status');
+    } else fetchJornadas();
   };
 
   return (
