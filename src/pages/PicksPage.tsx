@@ -9,6 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import { Loader2, Volleyball } from "lucide-react";
 import type { Match } from "@/lib/mockData";
+import { formatJornadaLabel } from "@/lib/jornadaLabel";
 
 const PicksPage = () => {
   const { user, loading: authLoading } = useAuth();
