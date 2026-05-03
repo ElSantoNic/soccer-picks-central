@@ -205,7 +205,7 @@ const LeaguePage = () => {
             {currentJornada && (
               <p className="px-4 py-2 text-[11px] text-muted-foreground bg-card border-b border-border">
                 {standingsView === 'jornada'
-                  ? t('league.jornadaLabel', { number: currentJornada.jornada_number })
+                  ? formatJornadaLabel(t, currentJornada, 'league.jornadaLabel')
                   : t('league.seasonLabel', { season: currentJornada.season })}
               </p>
             )}
