@@ -97,7 +97,7 @@
     "saved": "Picks saved ✓",
     "save": "Save my picks",
     "counter": "{{picked}} of {{total}} picks",
-    "errSave": "Save error: {{message}}",
+    "errSave": "Couldn't save your picks. Please try again.",
     "okSave": "Picks saved! ✓",
     "labelLocal": "Home",
     "labelDraw": "Draw",

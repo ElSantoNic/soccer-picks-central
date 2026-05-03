@@ -123,7 +123,8 @@ const PicksPage = () => {
     setIsSaving(false);
 
     if (error) {
-      toast.error(t("picks.errSave", { message: error.message }));
+      console.error("Error saving picks:", error);
+      toast.error(t("picks.errSave"));
       return;
     }
 

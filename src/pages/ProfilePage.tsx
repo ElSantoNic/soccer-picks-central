@@ -60,7 +60,8 @@ const ProfilePage = () => {
       .eq("user_id", user.id);
     setSavingPhone(false);
     if (error) {
-      toast.error(error.message || t("profile.errPhoneSave"));
+      console.error("Error saving phone:", error);
+      toast.error(t("profile.errPhoneSave"));
       return;
     }
     toast.success(t("profile.okPhoneSaved"));

@@ -97,7 +97,7 @@
     "saved": "Picks guardados ✓",
     "save": "Guardar mis picks",
     "counter": "{{picked}} de {{total}} picks",
-    "errSave": "Error al guardar: {{message}}",
+    "errSave": "No pudimos guardar tus pronósticos. Inténtalo de nuevo.",
     "okSave": "¡Picks guardados! ✓",
     "labelLocal": "Local",
     "labelDraw": "Empate",

@@ -71,7 +71,7 @@ const ResultsPage = () => {
 
       if (jornadaErr) {
         console.error("Error fetching jornadas:", jornadaErr);
-        toast.error(t("results.errLoadJornadasToast"), { description: jornadaErr.message });
+        toast.error(t("results.errLoadJornadasToast"));
         setError(t("results.errLoadJornadas"));
         setLoading(false);
         return;
@@ -87,7 +87,7 @@ const ResultsPage = () => {
 
       if (pickErr) {
         console.error("Error fetching picks:", pickErr);
-        toast.error(t("results.errLoadPicksToast"), { description: pickErr.message });
+        toast.error(t("results.errLoadPicksToast"));
         setError(t("results.errLoadPicks"));
         setLoading(false);
         return;
@@ -112,7 +112,7 @@ const ResultsPage = () => {
 
       if (matchErr) {
         console.error("Error fetching matches:", matchErr);
-        toast.error(t("results.errLoadMatchesToast"), { description: matchErr.message });
+        toast.error(t("results.errLoadMatchesToast"));
         setError(t("results.errLoadMatches"));
         setLoading(false);
         return;
