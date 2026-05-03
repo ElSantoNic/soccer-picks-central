@@ -213,6 +213,17 @@
     "achievements": "Mis logros",
     "signOut": "Cerrar sesión"
   },
+  "stage": {
+    "regular": "Regular",
+    "cuartos": "Cuartos",
+    "semifinal": "Semifinal",
+    "final": "Final"
+  },
+  "leg": {
+    "single": "Único",
+    "ida": "Ida",
+    "vuelta": "Vuelta"
+  },
   "about": {
     "title": "Acerca de FC Quiniela",
     "disclaimer": "FC Quiniela es un juego gratuito de predicciones. No aceptamos dinero. No somos una casa de apuestas.",
