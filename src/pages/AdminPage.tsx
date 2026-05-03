@@ -354,16 +354,19 @@ const ScheduleUpload = () => {
       </p>
 
       <div className="mb-4 p-4 rounded-lg border border-border bg-muted/30">
-        <p className="text-xs font-semibold text-foreground mb-2">Required columns</p>
-        <code className="block text-xs text-foreground mb-3">match_id, jornada_number, home_team, away_team, kickoff_utc</code>
-        <p className="text-xs font-semibold text-foreground mb-1">Example</p>
-        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto">{`match_id,jornada_number,home_team,away_team,kickoff_utc
-MX-2026-J15-01,15,América,Chivas,2026-04-21T02:00:00Z
-MX-2026-J15-02,15,Cruz Azul,Pumas,2026-04-21T04:00:00Z`}</pre>
+        <p className="text-xs font-semibold text-foreground mb-2">Columns</p>
+        <code className="block text-xs text-foreground mb-3">match_id, jornada_number, stage, leg, home_team, away_team, kickoff_utc</code>
+        <p className="text-xs font-semibold text-foreground mb-1">Example (regular season + playoffs)</p>
+        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto">{`match_id,jornada_number,stage,leg,home_team,away_team,kickoff_utc
+MX-2026-J17-01,17,regular,single,América,Chivas,2026-04-28T02:00:00Z
+MX-2026-CF-01-IDA,19,cuartos,ida,América,Pumas,2026-05-08T02:00:00Z
+MX-2026-CF-01-VTA,20,cuartos,vuelta,Pumas,América,2026-05-11T02:00:00Z`}</pre>
         <ul className="mt-3 text-xs text-muted-foreground space-y-1">
           <li>• <code>home_team</code> / <code>away_team</code> must match names in the <code>teams</code> table exactly</li>
           <li>• <code>kickoff_utc</code> in ISO 8601 UTC format</li>
           <li>• <code>match_id</code> is the stable ID used later in Results Upload (case-sensitive)</li>
+          <li>• <code>stage</code> optional — values: <code>regular</code> (default), <code>cuartos</code>, <code>semifinal</code>, <code>final</code></li>
+          <li>• <code>leg</code> optional — values: <code>single</code> (default), <code>ida</code>, <code>vuelta</code>. Each leg is its own jornada_number.</li>
         </ul>
       </div>
 
