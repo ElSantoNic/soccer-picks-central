@@ -44,7 +44,7 @@ const LeaguePage = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
   const [standingsView, setStandingsView] = useState<'jornada' | 'overall'>('jornada');
-  const [currentJornada, setCurrentJornada] = useState<{ jornada_number: number; season: string } | null>(null);
+  const [currentJornada, setCurrentJornada] = useState<{ jornada_number: number; season: string; stage: string; leg: string } | null>(null);
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
   const [loading, setLoading] = useState(true);
