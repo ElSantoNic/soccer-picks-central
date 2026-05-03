@@ -16,7 +16,7 @@ const PicksPage = () => {
   const { t } = useTranslation();
   const [matches, setMatches] = useState<Match[]>([]);
   const [jornadaId, setJornadaId] = useState<string | null>(null);
-  const [jornadaNumber, setJornadaNumber] = useState<number>(0);
+  const [jornadaInfo, setJornadaInfo] = useState<{ jornada_number: number; stage: string; leg: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [picks, setPicks] = useState<Record<string, '1' | 'X' | '2'>>({});
   const [matchIdMap, setMatchIdMap] = useState<Record<string, string>>({}); // csv/display id -> db uuid
