@@ -201,7 +201,12 @@ const JornadaManager = () => {
 // ─── Schedule Upload ──────────────────────────────────────────
 const ScheduleUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; summary: string; errors: string[] } | null>(null);
+  const [result, setResult] = useState<{
+    success: boolean;
+    summary: string;
+    errors: string[];
+    stats?: { totalRows: number; validRows: number; conflictJornadas: number };
+  } | null>(null);
 
   const handleFile = async (file: File) => {
     setIsUploading(true);
@@ -214,6 +219,7 @@ const ScheduleUpload = () => {
       const text = await file.text();
       const lines = text.trim().split('\n');
       if (lines.length < 2) throw new Error('CSV must have a header row and at least one data row');
+      let totalRows = 0;
 
       const header = lines[0].split(',').map(h => h.trim().toLowerCase());
       const matchIdIdx = header.findIndex(h => h === 'match_id');
@@ -239,6 +245,7 @@ const ScheduleUpload = () => {
         if (!line) continue;
         const cols = line.split(',').map(c => c.trim());
         const rowNum = i + 1;
+        totalRows++;
 
         const home = cols[homeIdx];
         const away = cols[awayIdx];
@@ -325,8 +332,10 @@ const ScheduleUpload = () => {
         }
       }
 
+      const stats = { totalRows, validRows: rows.length, conflictJornadas: reportedConflicts.size };
+
       if (errors.length > 0) {
-        setResult({ success: false, summary: `${errors.length} validation error(s)`, errors });
+        setResult({ success: false, summary: `${errors.length} validation error(s)`, errors, stats });
         setIsUploading(false);
         return;
       }
@@ -374,6 +383,7 @@ const ScheduleUpload = () => {
         success: true,
         summary: `${rows.length} matches imported for Jornada ${jornadaNumbers.join(', ')}`,
         errors: [],
+        stats,
       });
     } catch (err: any) {
       setResult({ success: false, summary: err.message, errors: [] });
@@ -448,6 +458,22 @@ MX-2026-FN-01-VTA,24,final,vuelta,Monterrey,América,2026-05-25T02:00:00Z`}</pre
             {result.success ? <CheckCircle className="w-5 h-5 text-success" /> : <AlertCircle className="w-5 h-5 text-destructive" />}
             <span className={`font-semibold text-sm ${result.success ? 'text-success' : 'text-destructive'}`}>{result.summary}</span>
           </div>
+          {result.stats && (
+            <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+              <div className="rounded border border-border bg-background/60 p-2">
+                <div className="text-muted-foreground">Total rows</div>
+                <div className="text-base font-bold text-foreground">{result.stats.totalRows}</div>
+              </div>
+              <div className="rounded border border-border bg-background/60 p-2">
+                <div className="text-muted-foreground">Valid rows</div>
+                <div className="text-base font-bold text-success">{result.stats.validRows}</div>
+              </div>
+              <div className="rounded border border-border bg-background/60 p-2">
+                <div className="text-muted-foreground">Conflict jornadas</div>
+                <div className={`text-base font-bold ${result.stats.conflictJornadas > 0 ? 'text-destructive' : 'text-foreground'}`}>{result.stats.conflictJornadas}</div>
+              </div>
+            </div>
+          )}
           {result.errors.length > 0 && (
             <ul className="mt-2 space-y-1">
               {result.errors.map((e, i) => (
