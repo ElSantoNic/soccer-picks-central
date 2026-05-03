@@ -164,7 +164,7 @@ const PicksPage = () => {
         ) : (
           <>
             <h2 className="text-base font-bold mb-3">
-              {t("picks.heading", { number: jornadaNumber })}
+              {t("picks.heading", { label: jornadaInfo ? formatJornadaLabel(t, jornadaInfo, "league.jornadaLabel") : "" })}
             </h2>
             {isJornadaLocked && (
               <div className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
