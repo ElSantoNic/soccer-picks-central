@@ -218,6 +218,8 @@ const ScheduleUpload = () => {
       const header = lines[0].split(',').map(h => h.trim().toLowerCase());
       const matchIdIdx = header.findIndex(h => h === 'match_id');
       const jornadaIdx = header.findIndex(h => h.includes('jornada'));
+      const stageIdx = header.findIndex(h => h === 'stage');
+      const legIdx = header.findIndex(h => h === 'leg');
       const homeIdx = header.findIndex(h => h.includes('home'));
       const awayIdx = header.findIndex(h => h.includes('away') || h.includes('visit'));
       const kickoffIdx = header.findIndex(h => h.includes('kickoff') || h.includes('date') || h.includes('fecha'));
@@ -226,8 +228,11 @@ const ScheduleUpload = () => {
         throw new Error('CSV must contain columns: home_team, away_team, kickoff_utc (or fecha/date)');
       }
 
+      const VALID_STAGES = new Set(['regular', 'cuartos', 'semifinal', 'final']);
+      const VALID_LEGS = new Set(['single', 'ida', 'vuelta']);
+
       const errors: string[] = [];
-      const rows: { match_id_csv: string; jornada_number: number; home_team: string; away_team: string; kickoff_utc: string }[] = [];
+      const rows: { match_id_csv: string; jornada_number: number; stage: string; leg: string; home_team: string; away_team: string; kickoff_utc: string }[] = [];
 
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -239,7 +244,15 @@ const ScheduleUpload = () => {
         const kickoff = cols[kickoffIdx];
         const matchId = matchIdIdx !== -1 ? cols[matchIdIdx] : `m${i}`;
         const jornadaNum = jornadaIdx !== -1 ? parseInt(cols[jornadaIdx]) : 0;
+        const stage = (stageIdx !== -1 ? (cols[stageIdx] || 'regular') : 'regular').toLowerCase();
+        const leg = (legIdx !== -1 ? (cols[legIdx] || 'single') : 'single').toLowerCase();
 
+        if (!VALID_STAGES.has(stage)) {
+          errors.push(`Row ${i + 1}: invalid stage "${stage}" (must be regular|cuartos|semifinal|final)`);
+        }
+        if (!VALID_LEGS.has(leg)) {
+          errors.push(`Row ${i + 1}: invalid leg "${leg}" (must be single|ida|vuelta)`);
+        }
         if (!validTeams.has(home)) {
           errors.push(`Row ${i + 1}: team "${home}" not in DB (check teams table)`);
         }
@@ -256,10 +269,23 @@ const ScheduleUpload = () => {
           rows.push({
             match_id_csv: matchId,
             jornada_number: jornadaNum,
+            stage,
+            leg,
             home_team: home,
             away_team: away,
             kickoff_utc: parsedDate.toISOString(),
           });
+        }
+      }
+
+      // Validate that all rows of the same jornada_number agree on stage/leg
+      const jornadaMeta = new Map<number, { stage: string; leg: string }>();
+      for (const r of rows) {
+        const existing = jornadaMeta.get(r.jornada_number);
+        if (!existing) {
+          jornadaMeta.set(r.jornada_number, { stage: r.stage, leg: r.leg });
+        } else if (existing.stage !== r.stage || existing.leg !== r.leg) {
+          errors.push(`Jornada ${r.jornada_number}: rows disagree on stage/leg (must be uniform)`);
         }
       }
 
@@ -269,9 +295,10 @@ const ScheduleUpload = () => {
         return;
       }
 
-      const jornadaNumbers = [...new Set(rows.map(r => r.jornada_number))];
+      const jornadaNumbers = [...jornadaMeta.keys()];
 
       for (const num of jornadaNumbers) {
+        const meta = jornadaMeta.get(num)!;
         const { data: existing } = await supabase
           .from('jornadas')
           .select('id')
@@ -279,7 +306,12 @@ const ScheduleUpload = () => {
           .maybeSingle();
 
         if (!existing) {
-          await supabase.from('jornadas').insert({ jornada_number: num, status: 'open' });
+          await supabase.from('jornadas').insert({
+            jornada_number: num,
+            status: 'open',
+            stage: meta.stage,
+            leg: meta.leg,
+          });
         }
       }
 
