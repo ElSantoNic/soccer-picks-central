@@ -332,8 +332,10 @@ const ScheduleUpload = () => {
         }
       }
 
+      const stats = { totalRows, validRows: rows.length, conflictJornadas: reportedConflicts.size };
+
       if (errors.length > 0) {
-        setResult({ success: false, summary: `${errors.length} validation error(s)`, errors });
+        setResult({ success: false, summary: `${errors.length} validation error(s)`, errors, stats });
         setIsUploading(false);
         return;
       }
@@ -381,6 +383,7 @@ const ScheduleUpload = () => {
         success: true,
         summary: `${rows.length} matches imported for Jornada ${jornadaNumbers.join(', ')}`,
         errors: [],
+        stats,
       });
     } catch (err: any) {
       setResult({ success: false, summary: err.message, errors: [] });
