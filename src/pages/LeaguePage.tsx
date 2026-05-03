@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import LeaderboardRow from "@/components/LeaderboardRow";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
+import { formatJornadaLabel } from "@/lib/jornadaLabel";
 import {
   AlertDialog,
   AlertDialogAction,
