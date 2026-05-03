@@ -245,6 +245,7 @@ const ScheduleUpload = () => {
         if (!line) continue;
         const cols = line.split(',').map(c => c.trim());
         const rowNum = i + 1;
+        totalRows++;
 
         const home = cols[homeIdx];
         const away = cols[awayIdx];
