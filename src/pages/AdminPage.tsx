@@ -53,6 +53,8 @@ const JornadaManager = () => {
   const [loading, setLoading] = useState(true);
   const [newNumber, setNewNumber] = useState('');
   const [newSeason, setNewSeason] = useState('Clausura 2026');
+  const [newStage, setNewStage] = useState<'regular' | 'cuartos' | 'semifinal' | 'final'>('regular');
+  const [newLeg, setNewLeg] = useState<'single' | 'ida' | 'vuelta'>('single');
 
   const fetchJornadas = useCallback(async () => {
     setLoading(true);
