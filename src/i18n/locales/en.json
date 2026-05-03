@@ -213,6 +213,17 @@
     "achievements": "My achievements",
     "signOut": "Sign out"
   },
+  "stage": {
+    "regular": "Regular",
+    "cuartos": "Quarterfinals",
+    "semifinal": "Semifinal",
+    "final": "Final"
+  },
+  "leg": {
+    "single": "Single",
+    "ida": "1st Leg",
+    "vuelta": "2nd Leg"
+  },
   "about": {
     "title": "About FC Quiniela",
     "disclaimer": "FC Quiniela is a free prediction game. We don't accept money. We're not a sportsbook.",
