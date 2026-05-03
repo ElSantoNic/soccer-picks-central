@@ -356,18 +356,52 @@ const ScheduleUpload = () => {
       <div className="mb-4 p-4 rounded-lg border border-border bg-muted/30">
         <p className="text-xs font-semibold text-foreground mb-2">Columns</p>
         <code className="block text-xs text-foreground mb-3">match_id, jornada_number, stage, leg, home_team, away_team, kickoff_utc</code>
-        <p className="text-xs font-semibold text-foreground mb-1">Example (regular season + playoffs)</p>
-        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto">{`match_id,jornada_number,stage,leg,home_team,away_team,kickoff_utc
+        <p className="text-xs font-semibold text-foreground mb-1">Regular season</p>
+        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto mb-3">{`match_id,jornada_number,stage,leg,home_team,away_team,kickoff_utc
 MX-2026-J17-01,17,regular,single,América,Chivas,2026-04-28T02:00:00Z
+MX-2026-J17-02,17,regular,single,Tigres,Monterrey,2026-04-28T04:00:00Z`}</pre>
+
+        <p className="text-xs font-semibold text-foreground mb-1">Cuartos de Final — Ida</p>
+        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto mb-3">{`match_id,jornada_number,stage,leg,home_team,away_team,kickoff_utc
 MX-2026-CF-01-IDA,19,cuartos,ida,América,Pumas,2026-05-08T02:00:00Z
-MX-2026-CF-01-VTA,20,cuartos,vuelta,Pumas,América,2026-05-11T02:00:00Z`}</pre>
+MX-2026-CF-02-IDA,19,cuartos,ida,Tigres,Cruz Azul,2026-05-08T04:00:00Z
+MX-2026-CF-03-IDA,19,cuartos,ida,Monterrey,Chivas,2026-05-09T02:00:00Z
+MX-2026-CF-04-IDA,19,cuartos,ida,Toluca,León,2026-05-09T04:00:00Z`}</pre>
+
+        <p className="text-xs font-semibold text-foreground mb-1">Cuartos de Final — Vuelta</p>
+        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto mb-3">{`match_id,jornada_number,stage,leg,home_team,away_team,kickoff_utc
+MX-2026-CF-01-VTA,20,cuartos,vuelta,Pumas,América,2026-05-11T02:00:00Z
+MX-2026-CF-02-VTA,20,cuartos,vuelta,Cruz Azul,Tigres,2026-05-11T04:00:00Z
+MX-2026-CF-03-VTA,20,cuartos,vuelta,Chivas,Monterrey,2026-05-12T02:00:00Z
+MX-2026-CF-04-VTA,20,cuartos,vuelta,León,Toluca,2026-05-12T04:00:00Z`}</pre>
+
+        <p className="text-xs font-semibold text-foreground mb-1">Semifinal — Ida</p>
+        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto mb-3">{`match_id,jornada_number,stage,leg,home_team,away_team,kickoff_utc
+MX-2026-SF-01-IDA,21,semifinal,ida,América,Tigres,2026-05-15T02:00:00Z
+MX-2026-SF-02-IDA,21,semifinal,ida,Monterrey,Toluca,2026-05-15T04:00:00Z`}</pre>
+
+        <p className="text-xs font-semibold text-foreground mb-1">Semifinal — Vuelta</p>
+        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto mb-3">{`match_id,jornada_number,stage,leg,home_team,away_team,kickoff_utc
+MX-2026-SF-01-VTA,22,semifinal,vuelta,Tigres,América,2026-05-18T02:00:00Z
+MX-2026-SF-02-VTA,22,semifinal,vuelta,Toluca,Monterrey,2026-05-18T04:00:00Z`}</pre>
+
+        <p className="text-xs font-semibold text-foreground mb-1">Final — Ida</p>
+        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto mb-3">{`match_id,jornada_number,stage,leg,home_team,away_team,kickoff_utc
+MX-2026-FN-01-IDA,23,final,ida,América,Monterrey,2026-05-22T02:00:00Z`}</pre>
+
+        <p className="text-xs font-semibold text-foreground mb-1">Final — Vuelta</p>
+        <pre className="text-xs text-muted-foreground bg-background border border-border rounded p-2 overflow-x-auto">{`match_id,jornada_number,stage,leg,home_team,away_team,kickoff_utc
+MX-2026-FN-01-VTA,24,final,vuelta,Monterrey,América,2026-05-25T02:00:00Z`}</pre>
+
         <ul className="mt-3 text-xs text-muted-foreground space-y-1">
           <li>• <code>home_team</code> / <code>away_team</code> must match names in the <code>teams</code> table exactly</li>
           <li>• <code>kickoff_utc</code> in ISO 8601 UTC format</li>
           <li>• <code>match_id</code> is the stable ID used later in Results Upload (case-sensitive)</li>
           <li>• <code>stage</code> optional — values: <code>regular</code> (default), <code>cuartos</code>, <code>semifinal</code>, <code>final</code></li>
           <li>• <code>leg</code> optional — values: <code>single</code> (default), <code>ida</code>, <code>vuelta</code>. Each leg is its own jornada_number.</li>
+          <li>• All rows sharing a <code>jornada_number</code> must have the same <code>stage</code> and <code>leg</code></li>
         </ul>
+
       </div>
 
       <CSVDropZone onFile={handleFile} isUploading={isUploading} />
