@@ -242,7 +242,7 @@ const ResultsPage = () => {
               transition={{ duration: 0.4 }}
             >
               <p className="text-sm text-muted-foreground mb-1">
-                {t("results.jornadaCompleted", { number: selected.jornada_number })}
+                {t("results.jornadaCompleted", { label: formatJornadaLabel(t, selected, "results.jornadaItem") })}
               </p>
               <motion.p
                 className="text-5xl font-bold text-primary"
