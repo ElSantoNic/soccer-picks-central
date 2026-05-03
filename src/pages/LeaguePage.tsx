@@ -43,6 +43,8 @@ const LeaguePage = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
+  const [standingsView, setStandingsView] = useState<'jornada' | 'overall'>('jornada');
+  const [currentJornada, setCurrentJornada] = useState<{ jornada_number: number; season: string } | null>(null);
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,13 +54,19 @@ const LeaguePage = () => {
   useEffect(() => {
     if (!leagueId) return;
     const fetchData = async () => {
-      const [leagueRes, membersRes] = await Promise.all([
+      const [leagueRes, membersRes, jornadaRes] = await Promise.all([
         supabase
           .from('leagues')
           .select('id, name, description, created_by')
           .eq('id', leagueId)
           .single(),
         supabase.from('league_members').select('*').eq('league_id', leagueId),
+        supabase
+          .from('jornadas')
+          .select('jornada_number, season')
+          .order('jornada_number', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
       if (leagueRes.data) {
         let join_code: string | null = null;
