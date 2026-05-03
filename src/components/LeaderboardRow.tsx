@@ -12,12 +12,18 @@ interface LeaderboardRowProps {
   rank: number;
   member: LeaderboardMember;
   isCurrentUser: boolean;
+  mode?: 'jornada' | 'overall';
 }
 
 const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
-const LeaderboardRow = ({ rank, member, isCurrentUser }: LeaderboardRowProps) => {
+const LeaderboardRow = ({ rank, member, isCurrentUser, mode = 'overall' }: LeaderboardRowProps) => {
   const { t } = useTranslation();
+  const primary = mode === 'jornada' ? member.points_jornada : member.points_total;
+  const secondary = mode === 'jornada'
+    ? `${member.points_total} ${t('league.totalPoints', { n: '' }).replace(/\{?\{?n\}?\}?/, '').trim() || 'total'}`
+    : `+${member.points_jornada} pts`;
+
   return (
     <div className={`flex items-center gap-3 px-4 py-3 transition-colors ${
       isCurrentUser ? 'bg-primary/5 border-l-4 border-primary' : 'border-b border-border'
@@ -41,8 +47,8 @@ const LeaderboardRow = ({ rank, member, isCurrentUser }: LeaderboardRowProps) =>
       </div>
 
       <div className="text-right">
-        <p className="text-lg font-bold">{member.points_total}</p>
-        <p className="text-[10px] text-muted-foreground">+{member.points_jornada} pts</p>
+        <p className="text-lg font-bold">{primary}</p>
+        <p className="text-[10px] text-muted-foreground">{secondary}</p>
       </div>
     </div>
   );
