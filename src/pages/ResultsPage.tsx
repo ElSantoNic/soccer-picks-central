@@ -125,11 +125,13 @@ const ResultsPage = () => {
 
       const bundleMap = new Map<string, JornadaBundle>();
       for (const jid of playedJornadaIds) {
-        const num = jornadaById.get(jid);
-        if (num === undefined) continue;
+        const info = jornadaById.get(jid);
+        if (!info) continue;
         bundleMap.set(jid, {
           id: jid,
-          jornada_number: num,
+          jornada_number: info.jornada_number,
+          stage: info.stage,
+          leg: info.leg,
           matches: [],
           picksByMatch: {},
         });
