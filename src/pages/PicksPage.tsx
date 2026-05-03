@@ -150,7 +150,7 @@ const PicksPage = () => {
   return (
     <div className="min-h-screen pb-36 bg-background">
       <TopBar
-        jornadaNumber={jornadaNumber}
+        jornadaNumber={jornadaInfo?.jornada_number ?? 0}
         firstKickoffUtc={firstFutureMatch?.kickoff_utc}
       />
 
