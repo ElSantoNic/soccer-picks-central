@@ -563,7 +563,8 @@ const ResultsUpload = () => {
         errors,
       });
     } catch (err: any) {
-      setResult({ success: false, summary: err.message, errors: [] });
+      console.error('Results upload failed:', err);
+      setResult({ success: false, summary: err.message || 'Upload failed', errors: [] });
     } finally {
       setIsUploading(false);
     }
