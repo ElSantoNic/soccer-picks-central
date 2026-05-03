@@ -46,7 +46,7 @@ const PicksPage = () => {
       }
 
       setJornadaId(jornada.id);
-      setJornadaNumber(jornada.jornada_number);
+      setJornadaInfo({ jornada_number: jornada.jornada_number, stage: (jornada as any).stage ?? 'regular', leg: (jornada as any).leg ?? 'single' });
 
       const { data: matchData } = await supabase
         .from('matches')
