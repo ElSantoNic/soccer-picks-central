@@ -161,7 +161,12 @@
     "removeConfirmTitle": "¿Eliminar miembro?",
     "removeConfirmDesc": "{{name}} ya no formará parte de {{league}}.",
     "removeSuccess": "Miembro eliminado",
-    "removeError": "No se pudo eliminar al miembro"
+    "removeError": "No se pudo eliminar al miembro",
+    "standingsJornada": "Jornada",
+    "standingsOverall": "General",
+    "jornadaLabel": "Jornada {{number}}",
+    "seasonLabel": "Temporada {{season}}",
+    "noJornadaResults": "Aún no hay resultados de esta jornada"
   },
   "createLeague": {
     "title": "Crear quiniela",
