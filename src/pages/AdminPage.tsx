@@ -87,7 +87,8 @@ const JornadaManager = () => {
       leg: newLeg,
     });
     if (error) {
-      toast.error(error.message);
+      console.error('Create jornada failed:', error);
+      toast.error('Failed to create jornada');
     } else {
       toast.success(`Jornada ${newNumber} created (previous open jornadas locked)`);
       setNewNumber('');
