@@ -201,7 +201,12 @@ const JornadaManager = () => {
 // ─── Schedule Upload ──────────────────────────────────────────
 const ScheduleUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; summary: string; errors: string[] } | null>(null);
+  const [result, setResult] = useState<{
+    success: boolean;
+    summary: string;
+    errors: string[];
+    stats?: { totalRows: number; validRows: number; conflictJornadas: number };
+  } | null>(null);
 
   const handleFile = async (file: File) => {
     setIsUploading(true);
@@ -214,6 +219,7 @@ const ScheduleUpload = () => {
       const text = await file.text();
       const lines = text.trim().split('\n');
       if (lines.length < 2) throw new Error('CSV must have a header row and at least one data row');
+      let totalRows = 0;
 
       const header = lines[0].split(',').map(h => h.trim().toLowerCase());
       const matchIdIdx = header.findIndex(h => h === 'match_id');
