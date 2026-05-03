@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
+import { formatJornadaLabel } from "@/lib/jornadaLabel";
 
 interface MatchRow {
   id: string;
