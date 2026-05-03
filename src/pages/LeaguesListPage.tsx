@@ -102,7 +102,7 @@ const LeaguesListPage = () => {
         .insert({
           league_id: league.id,
           user_id: user.id,
-          display_name: profile?.display_name || user.email || 'Jugador',
+          display_name: profile?.display_name || 'Jugador',
           avatar_emoji: profile?.avatar_emoji || '⚽',
         });
 
