@@ -69,7 +69,7 @@ const ResultsPage = () => {
 
       const { data: jornadaRows, error: jornadaErr } = await supabase
         .from("jornadas")
-        .select("id, jornada_number")
+        .select("id, jornada_number, stage, leg")
         .order("jornada_number", { ascending: false });
 
       if (jornadaErr) {
