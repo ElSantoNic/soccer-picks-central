@@ -106,6 +106,8 @@ const JornadaManager = () => {
 
       <div className="flex gap-2 items-end mb-6 p-4 bg-card rounded-lg border border-border">
         <div>
+      <div className="flex flex-wrap gap-2 items-end mb-6 p-4 bg-card rounded-lg border border-border">
+        <div>
           <label className="text-xs font-medium block mb-1">Season</label>
           <input
             value={newSeason}
@@ -122,6 +124,31 @@ const JornadaManager = () => {
             className="rounded-md border border-input bg-background px-3 py-2 text-sm w-20"
             min={1}
           />
+        </div>
+        <div>
+          <label className="text-xs font-medium block mb-1">Stage</label>
+          <select
+            value={newStage}
+            onChange={e => setNewStage(e.target.value as any)}
+            className="rounded-md border border-input bg-background px-2 py-2 text-sm"
+          >
+            <option value="regular">Regular</option>
+            <option value="cuartos">Cuartos</option>
+            <option value="semifinal">Semifinal</option>
+            <option value="final">Final</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium block mb-1">Leg</label>
+          <select
+            value={newLeg}
+            onChange={e => setNewLeg(e.target.value as any)}
+            className="rounded-md border border-input bg-background px-2 py-2 text-sm"
+          >
+            <option value="single">Single</option>
+            <option value="ida">Ida</option>
+            <option value="vuelta">Vuelta</option>
+          </select>
         </div>
         <button
           onClick={createJornada}
