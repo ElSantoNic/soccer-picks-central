@@ -57,7 +57,7 @@ const CreateLeaguePage = () => {
       await supabase.from("league_members").insert({
         league_id: data.id,
         user_id: user.id,
-        display_name: profile?.display_name || user.email || user.phone || "Organizador",
+        display_name: profile?.display_name || "Organizador",
         avatar_emoji: profile?.avatar_emoji || "⚽",
       });
     }
