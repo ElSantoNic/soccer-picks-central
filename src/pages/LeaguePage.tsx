@@ -218,13 +218,20 @@ const LeaguePage = () => {
             ) : (
               <div className="bg-card">
                 {sorted.map((member, i) => (
-                  <LeaderboardRow
+                  <button
                     key={member.id}
-                    rank={i + 1}
-                    member={member}
-                    isCurrentUser={!!user && member.user_id === user.id}
-                    mode={standingsView}
-                  />
+                    type="button"
+                    onClick={() => setSelectedMember(member)}
+                    className="block w-full text-left hover:bg-secondary/40 transition-colors"
+                    aria-label={t("league.viewMemberPicks", { name: member.display_name })}
+                  >
+                    <LeaderboardRow
+                      rank={i + 1}
+                      member={member}
+                      isCurrentUser={!!user && member.user_id === user.id}
+                      mode={standingsView}
+                    />
+                  </button>
                 ))}
               </div>
             )}
