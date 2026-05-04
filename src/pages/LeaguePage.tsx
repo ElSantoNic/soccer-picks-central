@@ -296,11 +296,6 @@ const LeaguePage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <BottomNav />
-    </div>
-  );
-};
-
       <MemberPicksDialog
         open={!!selectedMember}
         onOpenChange={(o) => !o && setSelectedMember(null)}
@@ -314,5 +309,7 @@ const LeaguePage = () => {
     </div>
   );
 };
+
+export default LeaguePage;
 
 export default LeaguePage;
