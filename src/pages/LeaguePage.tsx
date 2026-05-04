@@ -242,13 +242,20 @@ const LeaguePage = () => {
               const canRemove = isCreator && member.user_id !== league.created_by;
               return (
                 <div key={member.id} className="flex items-center gap-3 bg-card p-3 rounded-lg border border-border">
-                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xl">
-                    {member.avatar_emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{member.display_name}</p>
-                    <p className="text-xs text-muted-foreground">{t("league.totalPoints", { n: member.points_total })}</p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMember(member)}
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                    aria-label={t("league.viewMemberPicks", { name: member.display_name })}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xl">
+                      {member.avatar_emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{member.display_name}</p>
+                      <p className="text-xs text-muted-foreground">{t("league.totalPoints", { n: member.points_total })}</p>
+                    </div>
+                  </button>
                   {canRemove && (
                     <button
                       onClick={() => setMemberToRemove(member)}
@@ -288,6 +295,20 @@ const LeaguePage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BottomNav />
+    </div>
+  );
+};
+
+      <MemberPicksDialog
+        open={!!selectedMember}
+        onOpenChange={(o) => !o && setSelectedMember(null)}
+        leagueId={league.id}
+        member={selectedMember}
+        jornada={currentJornada}
+        isSelf={!!user && !!selectedMember && selectedMember.user_id === user.id}
+      />
 
       <BottomNav />
     </div>
