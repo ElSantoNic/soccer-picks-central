@@ -22,8 +22,18 @@ const CreateLeaguePage = () => {
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    const trimmedDesc = description.trim();
+    if (!trimmedName) {
       toast.error(t("createLeague.errName"));
+      return;
+    }
+    if (trimmedName.length > 100) {
+      toast.error(t("createLeague.errNameTooLong", "Name must be 100 characters or fewer"));
+      return;
+    }
+    if (trimmedDesc.length > 300) {
+      toast.error(t("createLeague.errDescTooLong", "Description must be 300 characters or fewer"));
       return;
     }
     if (joinCode.length !== 4) {
