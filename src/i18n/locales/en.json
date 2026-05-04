@@ -166,7 +166,14 @@
     "standingsOverall": "Overall",
     "jornadaLabel": "Matchday {{number}}",
     "seasonLabel": "Season {{season}}",
-    "noJornadaResults": "No matchday results yet"
+    "noJornadaResults": "No matchday results yet",
+    "viewPicksFor": "{{name}}'s picks",
+    "viewMemberPicks": "View {{name}}'s picks",
+    "picksHiddenUntilLock": "Picks will be visible to everyone once the matchday closes.",
+    "noPicksSubmitted": "This member didn't submit picks for this matchday.",
+    "pickHome": "Home (1)",
+    "pickDraw": "Draw (X)",
+    "pickAway": "Away (2)"
   },
   "createLeague": {
     "title": "Create a league",

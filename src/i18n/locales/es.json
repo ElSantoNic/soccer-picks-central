@@ -166,7 +166,14 @@
     "standingsOverall": "General",
     "jornadaLabel": "Jornada {{number}}",
     "seasonLabel": "Temporada {{season}}",
-    "noJornadaResults": "Aún no hay resultados de esta jornada"
+    "noJornadaResults": "Aún no hay resultados de esta jornada",
+    "viewPicksFor": "Selecciones de {{name}}",
+    "viewMemberPicks": "Ver selecciones de {{name}}",
+    "picksHiddenUntilLock": "Las selecciones se mostrarán a todos cuando cierre la jornada.",
+    "noPicksSubmitted": "Este miembro no envió selecciones para esta jornada.",
+    "pickHome": "Local (1)",
+    "pickDraw": "Empate (X)",
+    "pickAway": "Visitante (2)"
   },
   "createLeague": {
     "title": "Crear quiniela",
