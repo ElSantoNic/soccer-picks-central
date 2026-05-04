@@ -22,8 +22,18 @@ const CreateLeaguePage = () => {
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    const trimmedDesc = description.trim();
+    if (!trimmedName) {
       toast.error(t("createLeague.errName"));
+      return;
+    }
+    if (trimmedName.length > 100) {
+      toast.error(t("createLeague.errNameTooLong", "Name must be 100 characters or fewer"));
+      return;
+    }
+    if (trimmedDesc.length > 300) {
+      toast.error(t("createLeague.errDescTooLong", "Description must be 300 characters or fewer"));
       return;
     }
     if (joinCode.length !== 4) {
@@ -145,6 +155,7 @@ const CreateLeaguePage = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t("createLeague.placeholderName")}
+              maxLength={100}
               className="w-full px-4 py-3 rounded-lg border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -155,6 +166,7 @@ const CreateLeaguePage = () => {
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t("createLeague.placeholderDesc")}
               rows={2}
+              maxLength={300}
               className="w-full px-4 py-3 rounded-lg border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
             />
           </div>

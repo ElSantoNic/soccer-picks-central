@@ -35,9 +35,14 @@ const ProfilePage = () => {
 
   const handleSaveName = async () => {
     if (!user) return;
+    const trimmed = displayName.trim();
+    if (trimmed.length > 50) {
+      toast.error(t("profile.errNameTooLong", "Name must be 50 characters or fewer"));
+      return;
+    }
     const { error } = await supabase
       .from("profiles")
-      .update({ display_name: displayName.trim() })
+      .update({ display_name: trimmed })
       .eq("user_id", user.id);
     if (!error) {
       toast.success(t("profile.okNameSaved"));
@@ -129,6 +134,7 @@ const ProfilePage = () => {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 onBlur={handleSaveName}
+                maxLength={50}
                 className="w-full mt-1 px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
