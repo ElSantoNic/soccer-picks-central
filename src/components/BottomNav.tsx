@@ -18,7 +18,10 @@ const BottomNav = () => {
 
   if (HIDDEN_ROUTES.includes(location.pathname)) return null;
 
-  const activeTab = tabs.find(t => location.pathname.startsWith(t.path))?.id ?? 'picks';
+  const activeTab = [...tabs]
+    .sort((a, b) => b.path.length - a.path.length)
+    .find(t => location.pathname === t.path || location.pathname.startsWith(t.path + '/'))
+    ?.id ?? 'picks';
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
