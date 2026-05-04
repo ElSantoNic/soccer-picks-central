@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import LeaderboardRow from "@/components/LeaderboardRow";
+import MemberPicksDialog from "@/components/MemberPicksDialog";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import { formatJornadaLabel } from "@/lib/jornadaLabel";
