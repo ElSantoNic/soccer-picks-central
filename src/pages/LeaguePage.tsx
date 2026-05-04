@@ -311,5 +311,3 @@ const LeaguePage = () => {
 };
 
 export default LeaguePage;
-
-export default LeaguePage;
