@@ -305,6 +305,15 @@ export type Database = {
         }[]
       }
       get_league_join_code: { Args: { _league_id: string }; Returns: string }
+      get_member_picks: {
+        Args: { _jornada_id: string; _league_id: string; _user_id: string }
+        Returns: {
+          is_correct: boolean
+          match_id: string
+          pick: string
+          points_awarded: number
+        }[]
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import LeaderboardRow from "@/components/LeaderboardRow";
+import MemberPicksDialog from "@/components/MemberPicksDialog";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import { formatJornadaLabel } from "@/lib/jornadaLabel";
@@ -45,7 +46,8 @@ const LeaguePage = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
   const [standingsView, setStandingsView] = useState<'jornada' | 'overall'>('jornada');
-  const [currentJornada, setCurrentJornada] = useState<{ jornada_number: number; season: string; stage: string; leg: string } | null>(null);
+  const [currentJornada, setCurrentJornada] = useState<{ id: string; jornada_number: number; season: string; stage: string; leg: string; status: string } | null>(null);
+  const [selectedMember, setSelectedMember] = useState<LeagueMember | null>(null);
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ const LeaguePage = () => {
         supabase.from('league_members').select('*').eq('league_id', leagueId),
         supabase
           .from('jornadas')
-          .select('jornada_number, season, stage, leg')
+          .select('id, jornada_number, season, stage, leg, status')
           .order('jornada_number', { ascending: false })
           .limit(1)
           .maybeSingle(),
@@ -81,7 +83,7 @@ const LeaguePage = () => {
       if (membersRes.data) setMembers(membersRes.data as LeagueMember[]);
       if (jornadaRes.data) {
         const j: any = jornadaRes.data;
-        setCurrentJornada({ jornada_number: j.jornada_number, season: j.season, stage: j.stage ?? 'regular', leg: j.leg ?? 'single' });
+        setCurrentJornada({ id: j.id, jornada_number: j.jornada_number, season: j.season, stage: j.stage ?? 'regular', leg: j.leg ?? 'single', status: j.status ?? 'open' });
       }
       setLoading(false);
     };
@@ -216,13 +218,20 @@ const LeaguePage = () => {
             ) : (
               <div className="bg-card">
                 {sorted.map((member, i) => (
-                  <LeaderboardRow
+                  <button
                     key={member.id}
-                    rank={i + 1}
-                    member={member}
-                    isCurrentUser={!!user && member.user_id === user.id}
-                    mode={standingsView}
-                  />
+                    type="button"
+                    onClick={() => setSelectedMember(member)}
+                    className="block w-full text-left hover:bg-secondary/40 transition-colors"
+                    aria-label={t("league.viewMemberPicks", { name: member.display_name })}
+                  >
+                    <LeaderboardRow
+                      rank={i + 1}
+                      member={member}
+                      isCurrentUser={!!user && member.user_id === user.id}
+                      mode={standingsView}
+                    />
+                  </button>
                 ))}
               </div>
             )}
@@ -233,13 +242,20 @@ const LeaguePage = () => {
               const canRemove = isCreator && member.user_id !== league.created_by;
               return (
                 <div key={member.id} className="flex items-center gap-3 bg-card p-3 rounded-lg border border-border">
-                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xl">
-                    {member.avatar_emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{member.display_name}</p>
-                    <p className="text-xs text-muted-foreground">{t("league.totalPoints", { n: member.points_total })}</p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMember(member)}
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                    aria-label={t("league.viewMemberPicks", { name: member.display_name })}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xl">
+                      {member.avatar_emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{member.display_name}</p>
+                      <p className="text-xs text-muted-foreground">{t("league.totalPoints", { n: member.points_total })}</p>
+                    </div>
+                  </button>
                   {canRemove && (
                     <button
                       onClick={() => setMemberToRemove(member)}
@@ -279,6 +295,15 @@ const LeaguePage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MemberPicksDialog
+        open={!!selectedMember}
+        onOpenChange={(o) => !o && setSelectedMember(null)}
+        leagueId={league.id}
+        member={selectedMember}
+        jornada={currentJornada}
+        isSelf={!!user && !!selectedMember && selectedMember.user_id === user.id}
+      />
 
       <BottomNav />
     </div>
