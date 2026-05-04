@@ -309,12 +309,6 @@ const LoginPage = () => {
                 </button>
               )}
 
-              <button
-                onClick={() => navigate("/picks")}
-                className="w-full mt-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {t("auth.continueWithoutAccount")}
-              </button>
             </>
           ) : (
             <>
