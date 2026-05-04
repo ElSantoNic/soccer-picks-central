@@ -46,7 +46,8 @@ const LeaguePage = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
   const [standingsView, setStandingsView] = useState<'jornada' | 'overall'>('jornada');
-  const [currentJornada, setCurrentJornada] = useState<{ jornada_number: number; season: string; stage: string; leg: string } | null>(null);
+  const [currentJornada, setCurrentJornada] = useState<{ id: string; jornada_number: number; season: string; stage: string; leg: string; status: string } | null>(null);
+  const [selectedMember, setSelectedMember] = useState<LeagueMember | null>(null);
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +66,7 @@ const LeaguePage = () => {
         supabase.from('league_members').select('*').eq('league_id', leagueId),
         supabase
           .from('jornadas')
-          .select('jornada_number, season, stage, leg')
+          .select('id, jornada_number, season, stage, leg, status')
           .order('jornada_number', { ascending: false })
           .limit(1)
           .maybeSingle(),
@@ -82,7 +83,7 @@ const LeaguePage = () => {
       if (membersRes.data) setMembers(membersRes.data as LeagueMember[]);
       if (jornadaRes.data) {
         const j: any = jornadaRes.data;
-        setCurrentJornada({ jornada_number: j.jornada_number, season: j.season, stage: j.stage ?? 'regular', leg: j.leg ?? 'single' });
+        setCurrentJornada({ id: j.id, jornada_number: j.jornada_number, season: j.season, stage: j.stage ?? 'regular', leg: j.leg ?? 'single', status: j.status ?? 'open' });
       }
       setLoading(false);
     };
