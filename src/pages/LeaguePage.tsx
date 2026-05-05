@@ -46,7 +46,10 @@ const LeaguePage = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
   const [standingsView, setStandingsView] = useState<'jornada' | 'overall'>('jornada');
-  const [currentJornada, setCurrentJornada] = useState<{ id: string; jornada_number: number; season: string; stage: string; leg: string; status: string } | null>(null);
+  type JornadaRow = { id: string; jornada_number: number; season: string; stage: string; leg: string; status: string };
+  const [jornadas, setJornadas] = useState<JornadaRow[]>([]);
+  const [selectedJornadaId, setSelectedJornadaId] = useState<string | null>(null);
+  const [jornadaPoints, setJornadaPoints] = useState<Record<string, number>>({});
   const [selectedMember, setSelectedMember] = useState<LeagueMember | null>(null);
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
@@ -54,10 +57,12 @@ const LeaguePage = () => {
   const [memberToRemove, setMemberToRemove] = useState<LeagueMember | null>(null);
   const [removing, setRemoving] = useState(false);
 
+  const selectedJornada = jornadas.find(j => j.id === selectedJornadaId) ?? null;
+
   useEffect(() => {
     if (!leagueId) return;
     const fetchData = async () => {
-      const [leagueRes, membersRes, jornadaRes] = await Promise.all([
+      const [leagueRes, membersRes, jornadasRes] = await Promise.all([
         supabase
           .from('leagues')
           .select('id, name, description, created_by')
@@ -68,8 +73,7 @@ const LeaguePage = () => {
           .from('jornadas')
           .select('id, jornada_number, season, stage, leg, status')
           .order('jornada_number', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+          .limit(20),
       ]);
       if (leagueRes.data) {
         let join_code: string | null = null;
@@ -81,14 +85,35 @@ const LeaguePage = () => {
         setLeague({ ...leagueRes.data, join_code });
       }
       if (membersRes.data) setMembers(membersRes.data as LeagueMember[]);
-      if (jornadaRes.data) {
-        const j: any = jornadaRes.data;
-        setCurrentJornada({ id: j.id, jornada_number: j.jornada_number, season: j.season, stage: j.stage ?? 'regular', leg: j.leg ?? 'single', status: j.status ?? 'open' });
+      if (jornadasRes.data && jornadasRes.data.length > 0) {
+        const list = jornadasRes.data as JornadaRow[];
+        setJornadas(list);
+        const defaultJ = list.find(j => j.status === 'locked' || j.status === 'complete') ?? list[0];
+        setSelectedJornadaId(defaultJ.id);
       }
       setLoading(false);
     };
     fetchData();
   }, [leagueId, user]);
+
+  // Load per-jornada points for the selected jornada
+  useEffect(() => {
+    if (!leagueId || !selectedJornadaId) { setJornadaPoints({}); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.rpc('get_league_jornada_points', {
+        _league_id: leagueId,
+        _jornada_id: selectedJornadaId,
+      });
+      if (cancelled) return;
+      const map: Record<string, number> = {};
+      ((data as { user_id: string; points: number }[]) ?? []).forEach(r => {
+        map[r.user_id] = r.points;
+      });
+      setJornadaPoints(map);
+    })();
+    return () => { cancelled = true; };
+  }, [leagueId, selectedJornadaId]);
 
   const isCreator = !!user && !!league && user.id === league.created_by;
 
