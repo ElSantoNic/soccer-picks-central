@@ -75,7 +75,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, onDeleted }: Props) => {
       .eq("league_id", league.league_id);
     if (error) {
       console.error("league_members fetch error:", error);
-      toast.error(error.message);
+      toast.error(t("deleteAccount.errLoad"));
       return;
     }
     const others = (data ?? []).filter(
