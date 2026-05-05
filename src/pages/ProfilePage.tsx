@@ -283,7 +283,7 @@ const ProfilePage = () => {
               onClick={() => setDeleteOpen(true)}
               className="w-full py-2 rounded-lg bg-destructive text-destructive-foreground font-semibold text-sm hover:bg-destructive/90 transition-colors"
             >
-              {t("profile.deleteAccount")}
+              {t("profile.deleteAccountBtn")}
             </button>
           </div>
         </section>
