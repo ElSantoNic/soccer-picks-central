@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Frown, Share2, BarChart3, Users, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
