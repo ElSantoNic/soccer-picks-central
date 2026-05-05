@@ -19,6 +19,7 @@ const ProfilePage = () => {
   const [showPhoneInput, setShowPhoneInput] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
   const [savingChannel, setSavingChannel] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const currentLang = (i18n.resolvedLanguage || i18n.language || "es").startsWith("en") ? "en" : "es";
 
