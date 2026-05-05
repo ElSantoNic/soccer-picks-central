@@ -1,66 +1,29 @@
-## Goal
+## Problem
 
-Add account deletion to ProfilePage, but block it when the user still owns leagues. Force them to either delete each owned league or transfer ownership to another member first.
+In the account-deletion flow, "Transfer league" and "Delete league I own" both appear to do nothing. Root causes:
 
-## Why this matters
+1. `handleDeleteLeague` calls native `window.confirm(...)` which is unreliable inside the Lovable preview iframe — when it returns false, the RPC is never called and nothing visible happens.
+2. The "Transfer ownership" UI is rendered as a `<Dialog>` nested inside the parent `<Dialog>`. Radix doesn't support stacked dialogs cleanly: focus traps and `pointer-events: none` from the outer overlay can make the inner dialog's buttons unclickable.
+3. RPC errors are swallowed — only a generic toast is shown, no `console.error`, so real failures (e.g. RLS, "not a member") are invisible.
 
-`leagues.created_by` is `ON DELETE SET NULL`. If we let a creator delete their account, their leagues become orphaned (no one can manage members, regenerate codes, or delete the league — `leagues` has no DELETE policy at all). So we gate deletion on owned leagues being resolved first.
+## Fix
 
-`league_members` is `ON DELETE CASCADE` on `auth.users`, so a non-creator member's data cleans up automatically — no blocker there.
+### `src/components/DeleteAccountDialog.tsx`
 
-## UX (ProfilePage)
+- Replace `window.confirm` for "Delete league" with an inline confirmation step inside the same dialog (a small confirm banner with "Cancel / Confirm delete" buttons under the league row when the user clicks delete).
+- Replace the nested `<Dialog>` for transfer with an inline panel that swaps the dialog body when a league is selected for transfer (back button returns to the list). This avoids the stacking issue entirely and keeps the flow inside one dialog.
+- Add `console.error` logging on every RPC error and surface the Postgres `error.message` in the toast so future failures are debuggable.
+- Guard the member list: skip members whose `user_id` is null (those can't receive ownership) instead of rendering them as selectable.
+- After a successful transfer or league delete, refresh the owned-leagues list and, if the list is now empty, focus the "type DELETE" confirm input.
 
-New "Danger zone" section at the bottom (above sign out or below it):
+### No DB changes required
 
-- **Delete account** button (destructive style).
-- On click, open a confirmation dialog that first calls a new RPC `get_owned_leagues_blocking_deletion()`.
-  - **If it returns leagues**: show the list with each league name, member count, and two actions per row:
-    - "Transfer ownership" → opens a sub-dialog listing other members with a confirm button (calls `transfer_league_ownership` RPC).
-    - "Delete league" → confirm + call `delete_league` RPC.
-    - Show a notice: "You must resolve all owned leagues before deleting your account." The final delete button stays disabled while the list is non-empty.
-  - **If empty**: show a final typed-confirmation step ("type DELETE to confirm"), then call edge function `delete-account` which removes the auth user. After success, sign out and navigate to `/`.
+The `transfer_league_ownership`, `delete_league`, and `get_owned_leagues_blocking_deletion` functions and the `leagues` DELETE RLS policy are already in place and correct. No migration needed.
 
-Solo-creator leagues (creator is the only member) can be deleted directly without transfer. Leagues with other members require either transfer or explicit delete.
+### QA
 
-## Backend changes
-
-### Migration 1 — RPCs and policies
-
-1. `public.get_owned_leagues_blocking_deletion()` `SECURITY DEFINER`, returns `(league_id uuid, name text, member_count int, can_solo_delete bool)` for leagues where `created_by = auth.uid()`.
-
-2. `public.transfer_league_ownership(_league_id uuid, _new_owner uuid)` `SECURITY DEFINER`:
-   - Caller must be current `created_by`.
-   - `_new_owner` must be a `league_members` row in that league with non-null `user_id`.
-   - Updates `leagues.created_by = _new_owner`.
-
-3. `public.delete_league(_league_id uuid)` `SECURITY DEFINER`:
-   - Caller must be `created_by`.
-   - Deletes `league_members` for the league, then the `leagues` row.
-   - (Picks are per-user, not per-league, so they stay.)
-
-4. Add a DELETE policy on `leagues` for the creator (defense in depth) — though the RPC runs as definer, RLS should still permit creators to delete their own league rows directly if ever called from the client. Policy: `auth.uid() = created_by`.
-
-### Migration 2 — pre-delete guard trigger on auth.users
-
-We **cannot** modify `auth.users` per Supabase rules. Instead, the edge function performs the guard server-side before calling `auth.admin.deleteUser`.
-
-### Edge function — `delete-account`
-
-- Validates JWT (extracts `user_id`).
-- Re-runs the "owned leagues" check via service-role client. If any exist → returns 409 with the list.
-- Otherwise calls `supabase.auth.admin.deleteUser(user_id)`. CASCADE handles `profiles`, `admin_users`, `league_members`, `picks`. `leagues.created_by` becomes NULL only for leagues the user already transferred away (none should remain owned at this point).
-- Returns 200 on success.
-
-## Files
-
-- `supabase/migrations/<new>.sql` — three RPCs + leagues DELETE policy.
-- `supabase/functions/delete-account/index.ts` — new edge function (verify JWT in code, use service role, CORS).
-- `src/pages/ProfilePage.tsx` — danger zone section + dialog flow.
-- New `src/components/DeleteAccountDialog.tsx` — multi-step dialog (owned leagues resolution → typed confirm → delete).
-- `src/i18n/locales/{en,es}.json` — copy for danger zone, transfer, delete league, typed confirm, errors.
-
-## Out of scope
-
-- Bulk transfer UI.
-- Soft-delete / 30-day grace period (Supabase auth has no built-in undo; can revisit later).
-- Cleaning up historical picks or anonymizing leaderboards in leagues the user transferred away.
+After changes, manually verify on the user's current league (`Los de la Terced Edad!`):
+- Open Profile → Delete account.
+- For a multi-member league: pick "Transfer", select another member, confirm — league disappears from the list.
+- For a solo league: pick "Delete league", confirm inline — league disappears.
+- Once list is empty, type DELETE and confirm the account-deletion button enables.
