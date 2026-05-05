@@ -1,43 +1,66 @@
-## Problem
+## Goal
 
-`LeaguePage.tsx` always loads the single newest jornada (highest `jornada_number`) and passes it to `MemberPicksDialog`. After J19 (Vuelta) was uploaded, "current jornada" became J19. J19 is still `open` (not locked), so `get_member_picks` returns nothing for other members — and there is no UI to switch back to J18 (Ida), which is locked/in-progress and should still be viewable.
+Add account deletion to ProfilePage, but block it when the user still owns leagues. Force them to either delete each owned league or transfer ownership to another member first.
 
-The standings "Jornada" tab is also pinned to J19, so the J18 leaderboard becomes inaccessible the moment J19 is created.
+## Why this matters
 
-## Fix
+`leagues.created_by` is `ON DELETE SET NULL`. If we let a creator delete their account, their leagues become orphaned (no one can manage members, regenerate codes, or delete the league — `leagues` has no DELETE policy at all). So we gate deletion on owned leagues being resolved first.
 
-Add a jornada selector to the League page that drives both the standings view and the per-member picks dialog.
+`league_members` is `ON DELETE CASCADE` on `auth.users`, so a non-creator member's data cleans up automatically — no blocker there.
 
-### 1. Fetch jornadas list
-In `src/pages/LeaguePage.tsx`, replace the single-jornada query with a list:
-- Select `id, jornada_number, season, stage, leg, status` from `jornadas`, ordered by `jornada_number desc`, limited to ~20 most recent.
-- Default `selectedJornada` to: the newest `locked`/`complete` jornada if one exists, otherwise the newest jornada overall. This way, immediately after uploading J19 (open), the page still defaults to J18 (locked) — matching the user's mental model of "the jornada in play".
+## UX (ProfilePage)
 
-### 2. Add a selector UI
-Above the standings tabs (or inline with the "Jornada N" subtitle), add a compact dropdown / segmented control listing recent jornadas using `formatJornadaLabel` for each option (e.g. "Jornada 19", "Cuartos — Ida"). Selecting one updates `selectedJornada` state.
+New "Danger zone" section at the bottom (above sign out or below it):
 
-### 3. Wire selection through
-- Pass `selectedJornada` (instead of `currentJornada`) to `MemberPicksDialog`.
-- Recompute `points_jornada` displayed in the standings: since `league_members.points_jornada` is only kept in sync with the currently-open jornada, when the user picks a non-open jornada we need real per-jornada totals. Add a small query that, when `standingsView === 'jornada'` and `selectedJornada` is set, calls a new RPC `get_league_jornada_points(_league_id, _jornada_id)` returning `{ user_id, points }`, and merge those into the displayed rows.
+- **Delete account** button (destructive style).
+- On click, open a confirmation dialog that first calls a new RPC `get_owned_leagues_blocking_deletion()`.
+  - **If it returns leagues**: show the list with each league name, member count, and two actions per row:
+    - "Transfer ownership" → opens a sub-dialog listing other members with a confirm button (calls `transfer_league_ownership` RPC).
+    - "Delete league" → confirm + call `delete_league` RPC.
+    - Show a notice: "You must resolve all owned leagues before deleting your account." The final delete button stays disabled while the list is non-empty.
+  - **If empty**: show a final typed-confirmation step ("type DELETE to confirm"), then call edge function `delete-account` which removes the auth user. After success, sign out and navigate to `/`.
 
-### 4. New RPC (migration)
-Create `public.get_league_jornada_points(_league_id uuid, _jornada_id uuid)`:
-- `SECURITY DEFINER`, `STABLE`, `search_path = public`.
-- Auth check: caller must be a league member or the league creator (same pattern as `get_member_picks`).
-- Returns `user_id uuid, points integer` summed from `picks` joined to `league_members` for that league + jornada.
+Solo-creator leagues (creator is the only member) can be deleted directly without transfer. Leagues with other members require either transfer or explicit delete.
 
-This lets the leaderboard show correct per-jornada scores for any past jornada without changing the existing `league_members.points_jornada` invariant.
+## Backend changes
 
-### 5. Empty/edge states
-- If selected jornada is `open` and not the caller's, `MemberPicksDialog` already shows the "hidden until lock" message — keep as is.
-- "All zeros" empty state for the jornada standings view continues to work using the merged points.
+### Migration 1 — RPCs and policies
+
+1. `public.get_owned_leagues_blocking_deletion()` `SECURITY DEFINER`, returns `(league_id uuid, name text, member_count int, can_solo_delete bool)` for leagues where `created_by = auth.uid()`.
+
+2. `public.transfer_league_ownership(_league_id uuid, _new_owner uuid)` `SECURITY DEFINER`:
+   - Caller must be current `created_by`.
+   - `_new_owner` must be a `league_members` row in that league with non-null `user_id`.
+   - Updates `leagues.created_by = _new_owner`.
+
+3. `public.delete_league(_league_id uuid)` `SECURITY DEFINER`:
+   - Caller must be `created_by`.
+   - Deletes `league_members` for the league, then the `leagues` row.
+   - (Picks are per-user, not per-league, so they stay.)
+
+4. Add a DELETE policy on `leagues` for the creator (defense in depth) — though the RPC runs as definer, RLS should still permit creators to delete their own league rows directly if ever called from the client. Policy: `auth.uid() = created_by`.
+
+### Migration 2 — pre-delete guard trigger on auth.users
+
+We **cannot** modify `auth.users` per Supabase rules. Instead, the edge function performs the guard server-side before calling `auth.admin.deleteUser`.
+
+### Edge function — `delete-account`
+
+- Validates JWT (extracts `user_id`).
+- Re-runs the "owned leagues" check via service-role client. If any exist → returns 409 with the list.
+- Otherwise calls `supabase.auth.admin.deleteUser(user_id)`. CASCADE handles `profiles`, `admin_users`, `league_members`, `picks`. `leagues.created_by` becomes NULL only for leagues the user already transferred away (none should remain owned at this point).
+- Returns 200 on success.
 
 ## Files
 
-- `src/pages/LeaguePage.tsx` — fetch jornadas list, add selector, default to newest locked, wire selectedJornada through.
-- `src/i18n/locales/{en,es}.json` — add `league.selectJornada` label.
-- New migration — create `get_league_jornada_points` RPC.
+- `supabase/migrations/<new>.sql` — three RPCs + leagues DELETE policy.
+- `supabase/functions/delete-account/index.ts` — new edge function (verify JWT in code, use service role, CORS).
+- `src/pages/ProfilePage.tsx` — danger zone section + dialog flow.
+- New `src/components/DeleteAccountDialog.tsx` — multi-step dialog (owned leagues resolution → typed confirm → delete).
+- `src/i18n/locales/{en,es}.json` — copy for danger zone, transfer, delete league, typed confirm, errors.
 
 ## Out of scope
 
-No change to `MemberPicksDialog`, `get_member_picks`, or the scoring trigger. No change to how `league_members.points_jornada` is maintained.
+- Bulk transfer UI.
+- Soft-delete / 30-day grace period (Supabase auth has no built-in undo; can revisit later).
+- Cleaning up historical picks or anonymizing leaderboards in leagues the user transferred away.
