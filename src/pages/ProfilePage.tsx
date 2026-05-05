@@ -8,6 +8,7 @@ import { BADGE_DEFINITIONS } from "@/lib/mockData";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
+import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
