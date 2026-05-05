@@ -51,7 +51,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, onDeleted }: Props) => {
     setLoading(false);
     if (error) {
       console.error("get_owned_leagues_blocking_deletion error:", error);
-      toast.error(`${t("deleteAccount.errLoad")}: ${error.message}`);
+      toast.error(t("deleteAccount.errLoad"));
       return;
     }
     setOwned((data ?? []) as OwnedLeague[]);
@@ -75,7 +75,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, onDeleted }: Props) => {
       .eq("league_id", league.league_id);
     if (error) {
       console.error("league_members fetch error:", error);
-      toast.error(error.message);
+      toast.error(t("deleteAccount.errLoad"));
       return;
     }
     const others = (data ?? []).filter(
@@ -94,7 +94,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, onDeleted }: Props) => {
     setTransferring(false);
     if (error) {
       console.error("transfer_league_ownership error:", error);
-      toast.error(`${t("deleteAccount.errTransfer")}: ${error.message}`);
+      toast.error(t("deleteAccount.errTransfer"));
       return;
     }
     toast.success(t("deleteAccount.okTransfer", "Ownership transferred"));
@@ -108,7 +108,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, onDeleted }: Props) => {
     setDeletingLeague(false);
     if (error) {
       console.error("delete_league error:", error);
-      toast.error(`${t("deleteAccount.errDeleteLeague")}: ${error.message}`);
+      toast.error(t("deleteAccount.errDeleteLeague"));
       return;
     }
     toast.success(t("deleteAccount.okDeleteLeague", "League deleted"));
