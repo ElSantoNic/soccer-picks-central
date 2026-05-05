@@ -233,12 +233,32 @@ const LeaguePage = () => {
                 </button>
               ))}
             </div>
-            {currentJornada && (
-              <p className="px-4 py-2 text-[11px] text-muted-foreground bg-card border-b border-border">
-                {standingsView === 'jornada'
-                  ? formatJornadaLabel(t, currentJornada, 'league.jornadaLabel')
-                  : t('league.seasonLabel', { season: currentJornada.season })}
-              </p>
+            {standingsView === 'jornada' ? (
+              jornadas.length > 0 && (
+                <div className="px-4 py-2 bg-card border-b border-border flex items-center gap-2">
+                  <label htmlFor="jornada-select" className="text-[11px] text-muted-foreground">
+                    {t('league.selectJornada')}
+                  </label>
+                  <select
+                    id="jornada-select"
+                    value={selectedJornadaId ?? ''}
+                    onChange={(e) => setSelectedJornadaId(e.target.value)}
+                    className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground"
+                  >
+                    {jornadas.map(j => (
+                      <option key={j.id} value={j.id}>
+                        {formatJornadaLabel(t, j, 'league.jornadaLabel')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )
+            ) : (
+              selectedJornada && (
+                <p className="px-4 py-2 text-[11px] text-muted-foreground bg-card border-b border-border">
+                  {t('league.seasonLabel', { season: selectedJornada.season })}
+                </p>
+              )
             )}
             {standingsView === 'jornada' && allJornadaZero ? (
               <div className="text-center py-12 bg-card">
