@@ -42,6 +42,7 @@ interface League {
 const LeaguePage = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
