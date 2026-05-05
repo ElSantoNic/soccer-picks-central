@@ -167,6 +167,7 @@
     "jornadaLabel": "Matchday {{number}}",
     "seasonLabel": "Season {{season}}",
     "noJornadaResults": "No matchday results yet",
+    "selectJornada": "Matchday",
     "viewPicksFor": "{{name}}'s picks",
     "viewMemberPicks": "View {{name}}'s picks",
     "picksHiddenUntilLock": "Picks will be visible to everyone once the matchday closes.",
