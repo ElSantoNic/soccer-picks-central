@@ -46,7 +46,10 @@ const LeaguePage = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
   const [standingsView, setStandingsView] = useState<'jornada' | 'overall'>('jornada');
-  const [currentJornada, setCurrentJornada] = useState<{ id: string; jornada_number: number; season: string; stage: string; leg: string; status: string } | null>(null);
+  type JornadaRow = { id: string; jornada_number: number; season: string; stage: string; leg: string; status: string };
+  const [jornadas, setJornadas] = useState<JornadaRow[]>([]);
+  const [selectedJornadaId, setSelectedJornadaId] = useState<string | null>(null);
+  const [jornadaPoints, setJornadaPoints] = useState<Record<string, number>>({});
   const [selectedMember, setSelectedMember] = useState<LeagueMember | null>(null);
   const [league, setLeague] = useState<League | null>(null);
   const [members, setMembers] = useState<LeagueMember[]>([]);
@@ -54,10 +57,12 @@ const LeaguePage = () => {
   const [memberToRemove, setMemberToRemove] = useState<LeagueMember | null>(null);
   const [removing, setRemoving] = useState(false);
 
+  const selectedJornada = jornadas.find(j => j.id === selectedJornadaId) ?? null;
+
   useEffect(() => {
     if (!leagueId) return;
     const fetchData = async () => {
-      const [leagueRes, membersRes, jornadaRes] = await Promise.all([
+      const [leagueRes, membersRes, jornadasRes] = await Promise.all([
         supabase
           .from('leagues')
           .select('id, name, description, created_by')
@@ -68,8 +73,7 @@ const LeaguePage = () => {
           .from('jornadas')
           .select('id, jornada_number, season, stage, leg, status')
           .order('jornada_number', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+          .limit(20),
       ]);
       if (leagueRes.data) {
         let join_code: string | null = null;
@@ -81,14 +85,35 @@ const LeaguePage = () => {
         setLeague({ ...leagueRes.data, join_code });
       }
       if (membersRes.data) setMembers(membersRes.data as LeagueMember[]);
-      if (jornadaRes.data) {
-        const j: any = jornadaRes.data;
-        setCurrentJornada({ id: j.id, jornada_number: j.jornada_number, season: j.season, stage: j.stage ?? 'regular', leg: j.leg ?? 'single', status: j.status ?? 'open' });
+      if (jornadasRes.data && jornadasRes.data.length > 0) {
+        const list = jornadasRes.data as JornadaRow[];
+        setJornadas(list);
+        const defaultJ = list.find(j => j.status === 'locked' || j.status === 'complete') ?? list[0];
+        setSelectedJornadaId(defaultJ.id);
       }
       setLoading(false);
     };
     fetchData();
   }, [leagueId, user]);
+
+  // Load per-jornada points for the selected jornada
+  useEffect(() => {
+    if (!leagueId || !selectedJornadaId) { setJornadaPoints({}); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.rpc('get_league_jornada_points', {
+        _league_id: leagueId,
+        _jornada_id: selectedJornadaId,
+      });
+      if (cancelled) return;
+      const map: Record<string, number> = {};
+      ((data as { user_id: string; points: number }[]) ?? []).forEach(r => {
+        map[r.user_id] = r.points;
+      });
+      setJornadaPoints(map);
+    })();
+    return () => { cancelled = true; };
+  }, [leagueId, selectedJornadaId]);
 
   const isCreator = !!user && !!league && user.id === league.created_by;
 
@@ -110,12 +135,16 @@ const LeaguePage = () => {
     setMemberToRemove(null);
   };
 
-  const sorted = [...members].sort((a, b) =>
+  const membersWithJornada = members.map(m => ({
+    ...m,
+    points_jornada: m.user_id && jornadaPoints[m.user_id] != null ? jornadaPoints[m.user_id] : 0,
+  }));
+  const sorted = [...membersWithJornada].sort((a, b) =>
     standingsView === 'jornada'
       ? b.points_jornada - a.points_jornada || b.points_total - a.points_total
       : b.points_total - a.points_total
   );
-  const allJornadaZero = members.length > 0 && members.every(m => m.points_jornada === 0);
+  const allJornadaZero = membersWithJornada.length > 0 && membersWithJornada.every(m => m.points_jornada === 0);
 
   if (loading) {
     return (
@@ -204,12 +233,32 @@ const LeaguePage = () => {
                 </button>
               ))}
             </div>
-            {currentJornada && (
-              <p className="px-4 py-2 text-[11px] text-muted-foreground bg-card border-b border-border">
-                {standingsView === 'jornada'
-                  ? formatJornadaLabel(t, currentJornada, 'league.jornadaLabel')
-                  : t('league.seasonLabel', { season: currentJornada.season })}
-              </p>
+            {standingsView === 'jornada' ? (
+              jornadas.length > 0 && (
+                <div className="px-4 py-2 bg-card border-b border-border flex items-center gap-2">
+                  <label htmlFor="jornada-select" className="text-[11px] text-muted-foreground">
+                    {t('league.selectJornada')}
+                  </label>
+                  <select
+                    id="jornada-select"
+                    value={selectedJornadaId ?? ''}
+                    onChange={(e) => setSelectedJornadaId(e.target.value)}
+                    className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground"
+                  >
+                    {jornadas.map(j => (
+                      <option key={j.id} value={j.id}>
+                        {formatJornadaLabel(t, j, 'league.jornadaLabel')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )
+            ) : (
+              selectedJornada && (
+                <p className="px-4 py-2 text-[11px] text-muted-foreground bg-card border-b border-border">
+                  {t('league.seasonLabel', { season: selectedJornada.season })}
+                </p>
+              )
             )}
             {standingsView === 'jornada' && allJornadaZero ? (
               <div className="text-center py-12 bg-card">
@@ -301,7 +350,7 @@ const LeaguePage = () => {
         onOpenChange={(o) => !o && setSelectedMember(null)}
         leagueId={league.id}
         member={selectedMember}
-        jornada={currentJornada}
+        jornada={selectedJornada}
         isSelf={!!user && !!selectedMember && selectedMember.user_id === user.id}
       />
 

@@ -305,6 +305,13 @@ export type Database = {
         }[]
       }
       get_league_join_code: { Args: { _league_id: string }; Returns: string }
+      get_league_jornada_points: {
+        Args: { _jornada_id: string; _league_id: string }
+        Returns: {
+          points: number
+          user_id: string
+        }[]
+      }
       get_member_picks: {
         Args: { _jornada_id: string; _league_id: string; _user_id: string }
         Returns: {
