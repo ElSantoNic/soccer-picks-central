@@ -350,7 +350,7 @@ const LeaguePage = () => {
         onOpenChange={(o) => !o && setSelectedMember(null)}
         leagueId={league.id}
         member={selectedMember}
-        jornada={currentJornada}
+        jornada={selectedJornada}
         isSelf={!!user && !!selectedMember && selectedMember.user_id === user.id}
       />
 
