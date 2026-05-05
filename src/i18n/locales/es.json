@@ -167,6 +167,7 @@
     "jornadaLabel": "Jornada {{number}}",
     "seasonLabel": "Temporada {{season}}",
     "noJornadaResults": "Aún no hay resultados de esta jornada",
+    "selectJornada": "Jornada",
     "viewPicksFor": "Selecciones de {{name}}",
     "viewMemberPicks": "Ver selecciones de {{name}}",
     "picksHiddenUntilLock": "Las selecciones se mostrarán a todos cuando cierre la jornada.",
