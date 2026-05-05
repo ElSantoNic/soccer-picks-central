@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Frown, Share2, BarChart3, Users, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +42,7 @@ interface League {
 const LeaguePage = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'tabla' | 'miembros'>('tabla');
@@ -88,7 +89,9 @@ const LeaguePage = () => {
       if (jornadasRes.data && jornadasRes.data.length > 0) {
         const list = jornadasRes.data as JornadaRow[];
         setJornadas(list);
-        const defaultJ = list.find(j => j.status === 'locked' || j.status === 'complete') ?? list[0];
+        const urlJ = searchParams.get('jornada');
+        const fromUrl = urlJ ? list.find(j => j.id === urlJ || String(j.jornada_number) === urlJ) : null;
+        const defaultJ = fromUrl ?? list.find(j => j.status === 'locked' || j.status === 'complete') ?? list[0];
         setSelectedJornadaId(defaultJ.id);
       }
       setLoading(false);
@@ -242,7 +245,15 @@ const LeaguePage = () => {
                   <select
                     id="jornada-select"
                     value={selectedJornadaId ?? ''}
-                    onChange={(e) => setSelectedJornadaId(e.target.value)}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedJornadaId(id);
+                      const j = jornadas.find(x => x.id === id);
+                      const next = new URLSearchParams(searchParams);
+                      if (j) next.set('jornada', String(j.jornada_number));
+                      else next.delete('jornada');
+                      setSearchParams(next, { replace: true });
+                    }}
                     className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground"
                   >
                     {jornadas.map(j => (
