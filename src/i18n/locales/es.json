@@ -221,7 +221,7 @@
     "achievements": "Mis logros",
     "signOut": "Cerrar sesión",
     "dangerZone": "Zona de peligro",
-    "deleteAccount": "Eliminar cuenta",
+    "deleteAccountBtn": "Eliminar cuenta",
     "deleteAccountDesc": "Elimina tu cuenta y todos tus pronósticos de forma permanente. Esto no se puede deshacer."
   },
   "deleteAccount": {
