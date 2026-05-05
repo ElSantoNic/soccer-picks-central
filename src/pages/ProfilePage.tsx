@@ -272,6 +272,31 @@ const ProfilePage = () => {
         >
           {t("profile.signOut")}
         </button>
+
+        <section>
+          <h2 className="text-xs font-bold uppercase text-destructive mb-3 tracking-wider">
+            {t("profile.dangerZone")}
+          </h2>
+          <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 space-y-3">
+            <p className="text-xs text-muted-foreground">{t("profile.deleteAccountDesc")}</p>
+            <button
+              onClick={() => setDeleteOpen(true)}
+              className="w-full py-2 rounded-lg bg-destructive text-destructive-foreground font-semibold text-sm hover:bg-destructive/90 transition-colors"
+            >
+              {t("profile.deleteAccount")}
+            </button>
+          </div>
+        </section>
+
+        <DeleteAccountDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          onDeleted={async () => {
+            setDeleteOpen(false);
+            await signOut();
+            navigate("/");
+          }}
+        />
       </main>
       <BottomNav />
     </div>
