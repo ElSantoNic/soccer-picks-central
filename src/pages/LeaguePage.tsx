@@ -89,7 +89,9 @@ const LeaguePage = () => {
       if (jornadasRes.data && jornadasRes.data.length > 0) {
         const list = jornadasRes.data as JornadaRow[];
         setJornadas(list);
-        const defaultJ = list.find(j => j.status === 'locked' || j.status === 'complete') ?? list[0];
+        const urlJ = searchParams.get('jornada');
+        const fromUrl = urlJ ? list.find(j => j.id === urlJ || String(j.jornada_number) === urlJ) : null;
+        const defaultJ = fromUrl ?? list.find(j => j.status === 'locked' || j.status === 'complete') ?? list[0];
         setSelectedJornadaId(defaultJ.id);
       }
       setLoading(false);
