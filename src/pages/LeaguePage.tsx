@@ -135,12 +135,16 @@ const LeaguePage = () => {
     setMemberToRemove(null);
   };
 
-  const sorted = [...members].sort((a, b) =>
+  const membersWithJornada = members.map(m => ({
+    ...m,
+    points_jornada: m.user_id && jornadaPoints[m.user_id] != null ? jornadaPoints[m.user_id] : 0,
+  }));
+  const sorted = [...membersWithJornada].sort((a, b) =>
     standingsView === 'jornada'
       ? b.points_jornada - a.points_jornada || b.points_total - a.points_total
       : b.points_total - a.points_total
   );
-  const allJornadaZero = members.length > 0 && members.every(m => m.points_jornada === 0);
+  const allJornadaZero = membersWithJornada.length > 0 && membersWithJornada.every(m => m.points_jornada === 0);
 
   if (loading) {
     return (
