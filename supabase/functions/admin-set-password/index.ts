@@ -7,15 +7,19 @@ const corsHeaders = {
 
 const ALLOWED_EMAIL = (Deno.env.get("ADMIN_ALLOWED_EMAIL") ?? "").trim().toLowerCase();
 
-// Constant-time string comparison to prevent timing attacks on the setup secret.
-// Iterates the full length regardless of input length to avoid leaking length info.
+// Constant-time comparison using Deno's native primitive. When lengths differ,
+// we still perform a same-length comparison to avoid JIT shortcuts and to keep
+// timing independent of the secret's length.
 function timingSafeEqual(a: string, b: string): boolean {
-  const len = Math.max(a.length, b.length);
-  let result = a.length === b.length ? 0 : 1;
-  for (let i = 0; i < len; i++) {
-    result |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  const enc = new TextEncoder();
+  const ab = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ab.byteLength !== bb.byteLength) {
+    // Dummy comparison of equal-length buffers; result discarded.
+    crypto.subtle.timingSafeEqual(ab, ab);
+    return false;
   }
-  return result === 0;
+  return crypto.subtle.timingSafeEqual(ab, bb);
 }
 
 const json = (status: number, body: unknown) =>
