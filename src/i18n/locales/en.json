@@ -221,7 +221,7 @@
     "achievements": "My achievements",
     "signOut": "Sign out",
     "dangerZone": "Danger zone",
-    "deleteAccount": "Delete account",
+    "deleteAccountBtn": "Delete account",
     "deleteAccountDesc": "Permanently delete your account and all your picks. This cannot be undone."
   },
   "deleteAccount": {
