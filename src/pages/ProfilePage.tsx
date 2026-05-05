@@ -8,6 +8,7 @@ import { BADGE_DEFINITIONS } from "@/lib/mockData";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
+import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const ProfilePage = () => {
   const [showPhoneInput, setShowPhoneInput] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
   const [savingChannel, setSavingChannel] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const currentLang = (i18n.resolvedLanguage || i18n.language || "es").startsWith("en") ? "en" : "es";
 
@@ -270,6 +272,31 @@ const ProfilePage = () => {
         >
           {t("profile.signOut")}
         </button>
+
+        <section>
+          <h2 className="text-xs font-bold uppercase text-destructive mb-3 tracking-wider">
+            {t("profile.dangerZone")}
+          </h2>
+          <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 space-y-3">
+            <p className="text-xs text-muted-foreground">{t("profile.deleteAccountDesc")}</p>
+            <button
+              onClick={() => setDeleteOpen(true)}
+              className="w-full py-2 rounded-lg bg-destructive text-destructive-foreground font-semibold text-sm hover:bg-destructive/90 transition-colors"
+            >
+              {t("profile.deleteAccount")}
+            </button>
+          </div>
+        </section>
+
+        <DeleteAccountDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          onDeleted={async () => {
+            setDeleteOpen(false);
+            await signOut();
+            navigate("/");
+          }}
+        />
       </main>
       <BottomNav />
     </div>

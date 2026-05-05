@@ -296,6 +296,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_league: { Args: { _league_id: string }; Returns: undefined }
       find_league_by_code: {
         Args: { _code: string }
         Returns: {
@@ -321,7 +322,20 @@ export type Database = {
           points_awarded: number
         }[]
       }
+      get_owned_leagues_blocking_deletion: {
+        Args: never
+        Returns: {
+          can_solo_delete: boolean
+          league_id: string
+          member_count: number
+          name: string
+        }[]
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      transfer_league_ownership: {
+        Args: { _league_id: string; _new_owner: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
