@@ -51,7 +51,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, onDeleted }: Props) => {
     setLoading(false);
     if (error) {
       console.error("get_owned_leagues_blocking_deletion error:", error);
-      toast.error(`${t("deleteAccount.errLoad")}: ${error.message}`);
+      toast.error(t("deleteAccount.errLoad"));
       return;
     }
     setOwned((data ?? []) as OwnedLeague[]);
