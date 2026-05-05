@@ -94,7 +94,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, onDeleted }: Props) => {
     setTransferring(false);
     if (error) {
       console.error("transfer_league_ownership error:", error);
-      toast.error(`${t("deleteAccount.errTransfer")}: ${error.message}`);
+      toast.error(t("deleteAccount.errTransfer"));
       return;
     }
     toast.success(t("deleteAccount.okTransfer", "Ownership transferred"));
