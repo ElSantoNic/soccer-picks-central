@@ -245,7 +245,15 @@ const LeaguePage = () => {
                   <select
                     id="jornada-select"
                     value={selectedJornadaId ?? ''}
-                    onChange={(e) => setSelectedJornadaId(e.target.value)}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedJornadaId(id);
+                      const j = jornadas.find(x => x.id === id);
+                      const next = new URLSearchParams(searchParams);
+                      if (j) next.set('jornada', String(j.jornada_number));
+                      else next.delete('jornada');
+                      setSearchParams(next, { replace: true });
+                    }}
                     className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground"
                   >
                     {jornadas.map(j => (
