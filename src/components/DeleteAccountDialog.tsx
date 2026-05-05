@@ -108,7 +108,7 @@ const DeleteAccountDialog = ({ open, onOpenChange, onDeleted }: Props) => {
     setDeletingLeague(false);
     if (error) {
       console.error("delete_league error:", error);
-      toast.error(`${t("deleteAccount.errDeleteLeague")}: ${error.message}`);
+      toast.error(t("deleteAccount.errDeleteLeague"));
       return;
     }
     toast.success(t("deleteAccount.okDeleteLeague", "League deleted"));
