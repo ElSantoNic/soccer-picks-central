@@ -7,19 +7,22 @@ const corsHeaders = {
 
 const ALLOWED_EMAIL = (Deno.env.get("ADMIN_ALLOWED_EMAIL") ?? "").trim().toLowerCase();
 
-// Constant-time comparison using Deno's native primitive. When lengths differ,
-// we still perform a same-length comparison to avoid JIT shortcuts and to keep
-// timing independent of the secret's length.
-function timingSafeEqual(a: string, b: string): boolean {
+// Constant-time comparison via HMAC-SHA256 of both inputs using a random
+// per-invocation key. Both HMAC outputs are always 32 bytes regardless of
+// input length, eliminating any length-based branch or oracle.
+async function timingSafeEqual(a: string, b: string): Promise<boolean> {
   const enc = new TextEncoder();
-  const ab = enc.encode(a);
-  const bb = enc.encode(b);
-  if (ab.byteLength !== bb.byteLength) {
-    // Dummy comparison of equal-length buffers; result discarded.
-    crypto.subtle.timingSafeEqual(ab, ab);
-    return false;
-  }
-  return crypto.subtle.timingSafeEqual(ab, bb);
+  const keyBytes = crypto.getRandomValues(new Uint8Array(32));
+  const key = await crypto.subtle.importKey(
+    "raw",
+    keyBytes,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sigA = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(a)));
+  const sigB = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(b)));
+  return crypto.subtle.timingSafeEqual(sigA, sigB);
 }
 
 const json = (status: number, body: unknown) =>
@@ -60,10 +63,11 @@ Deno.serve(async (req) => {
 
     // Generic 401 for both bad secret and disallowed email so callers cannot
     // distinguish which check failed.
+    const secretOk = expected ? await timingSafeEqual(setupSecret, expected) : false;
     if (
       !expected ||
       !ALLOWED_EMAIL ||
-      !timingSafeEqual(setupSecret, expected) ||
+      !secretOk ||
       emailNorm !== ALLOWED_EMAIL
     ) {
       console.warn("admin-set-password: unauthorized attempt", {
