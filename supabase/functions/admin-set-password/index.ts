@@ -63,10 +63,11 @@ Deno.serve(async (req) => {
 
     // Generic 401 for both bad secret and disallowed email so callers cannot
     // distinguish which check failed.
+    const secretOk = expected ? await timingSafeEqual(setupSecret, expected) : false;
     if (
       !expected ||
       !ALLOWED_EMAIL ||
-      !timingSafeEqual(setupSecret, expected) ||
+      !secretOk ||
       emailNorm !== ALLOWED_EMAIL
     ) {
       console.warn("admin-set-password: unauthorized attempt", {
