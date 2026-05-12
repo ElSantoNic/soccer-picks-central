@@ -299,8 +299,8 @@ const LeaguePage = () => {
                     />
                   </button>
                 ))}
-              </div>
-            )}
+            </div>
+
           </div>
         ) : (
           <div className="p-4 space-y-3">
