@@ -167,6 +167,7 @@
     "jornadaLabel": "Jornada {{number}}",
     "seasonLabel": "Temporada {{season}}",
     "noJornadaResults": "Aún no hay resultados de esta jornada",
+    "standingsLoadError": "No se pudo cargar la tabla",
     "selectJornada": "Jornada",
     "viewPicksFor": "Selecciones de {{name}}",
     "viewMemberPicks": "Ver selecciones de {{name}}",
