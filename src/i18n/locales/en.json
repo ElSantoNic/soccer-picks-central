@@ -248,7 +248,8 @@
     "errLoad": "Couldn't load your leagues",
     "errTransfer": "Couldn't transfer ownership",
     "errDeleteLeague": "Couldn't delete league",
-    "errDelete": "Couldn't delete account"
+    "errDelete": "Couldn't delete account",
+    "mustHandleLeagues": "You still own leagues — transfer or delete them first."
   },
   "stage": {
     "regular": "Regular",

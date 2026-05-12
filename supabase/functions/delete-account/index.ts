@@ -34,18 +34,27 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // Re-check owned leagues server-side
+    // Re-check owned leagues server-side, with member counts so the client
+    // can render the same transfer/delete UI as the RPC.
     const { data: ownedLeagues, error: leaguesErr } = await admin
       .from("leagues")
-      .select("id, name")
+      .select("id, name, league_members(user_id)")
       .eq("created_by", userId);
     if (leaguesErr) throw leaguesErr;
 
     if (ownedLeagues && ownedLeagues.length > 0) {
-      return json(409, {
-        error: "owned_leagues",
-        leagues: ownedLeagues,
+      const leagues = ownedLeagues.map((l: any) => {
+        const members = (l.league_members ?? []) as Array<{ user_id: string | null }>;
+        const member_count = members.length;
+        const other_cnt = members.filter((m) => m.user_id && m.user_id !== userId).length;
+        return {
+          league_id: l.id,
+          name: l.name,
+          member_count,
+          can_solo_delete: other_cnt === 0,
+        };
       });
+      return json(409, { error: "owned_leagues", leagues });
     }
 
     const { error: delErr } = await admin.auth.admin.deleteUser(userId);
