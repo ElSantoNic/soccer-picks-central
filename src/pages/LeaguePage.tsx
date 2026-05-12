@@ -104,11 +104,17 @@ const LeaguePage = () => {
     if (!leagueId || !selectedJornadaId) { setJornadaPoints({}); return; }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.rpc('get_league_jornada_points', {
+      const { data, error } = await supabase.rpc('get_league_jornada_points', {
         _league_id: leagueId,
         _jornada_id: selectedJornadaId,
       });
       if (cancelled) return;
+      if (error) {
+        console.error('get_league_jornada_points failed', error);
+        toast({ title: t('league.standingsLoadError'), variant: 'destructive' });
+        setJornadaPoints({});
+        return;
+      }
       const map: Record<string, number> = {};
       ((data as { user_id: string; points: number }[]) ?? []).forEach(r => {
         map[r.user_id] = r.points;
@@ -147,7 +153,7 @@ const LeaguePage = () => {
       ? b.points_jornada - a.points_jornada || b.points_total - a.points_total
       : b.points_total - a.points_total
   );
-  const allJornadaZero = membersWithJornada.length > 0 && membersWithJornada.every(m => m.points_jornada === 0);
+  const noJornadaScores = membersWithJornada.length > 0 && membersWithJornada.every(m => m.points_jornada === 0);
 
   if (loading) {
     return (
@@ -271,13 +277,13 @@ const LeaguePage = () => {
                 </p>
               )
             )}
-            {standingsView === 'jornada' && allJornadaZero ? (
-              <div className="text-center py-12 bg-card">
-                <p className="text-sm text-muted-foreground">{t('league.noJornadaResults')}</p>
-              </div>
-            ) : (
-              <div className="bg-card">
-                {sorted.map((member, i) => (
+            {standingsView === 'jornada' && noJornadaScores && (
+              <p className="px-4 py-2 text-[11px] text-muted-foreground bg-card border-b border-border text-center">
+                {t('league.noJornadaResults')}
+              </p>
+            )}
+            <div className="bg-card">
+              {sorted.map((member, i) => (
                   <button
                     key={member.id}
                     type="button"
@@ -293,8 +299,8 @@ const LeaguePage = () => {
                     />
                   </button>
                 ))}
-              </div>
-            )}
+            </div>
+
           </div>
         ) : (
           <div className="p-4 space-y-3">

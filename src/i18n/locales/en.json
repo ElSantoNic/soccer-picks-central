@@ -167,6 +167,7 @@
     "jornadaLabel": "Matchday {{number}}",
     "seasonLabel": "Season {{season}}",
     "noJornadaResults": "No matchday results yet",
+    "standingsLoadError": "Could not load standings",
     "selectJornada": "Matchday",
     "viewPicksFor": "{{name}}'s picks",
     "viewMemberPicks": "View {{name}}'s picks",
