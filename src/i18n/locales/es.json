@@ -248,7 +248,8 @@
     "errLoad": "No se pudieron cargar tus quinielas",
     "errTransfer": "No se pudo transferir la propiedad",
     "errDeleteLeague": "No se pudo eliminar la quiniela",
-    "errDelete": "No se pudo eliminar la cuenta"
+    "errDelete": "No se pudo eliminar la cuenta",
+    "mustHandleLeagues": "Aún eres dueño de quinielas — transfiérelas o elimínalas primero."
   },
   "stage": {
     "regular": "Regular",
