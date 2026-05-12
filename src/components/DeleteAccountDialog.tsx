@@ -120,12 +120,34 @@ const DeleteAccountDialog = ({ open, onOpenChange, onDeleted }: Props) => {
     setDeleting(true);
     const { data, error } = await supabase.functions.invoke("delete-account", { method: "POST" });
     setDeleting(false);
-    if (error || (data as any)?.error) {
-      console.error("delete-account error:", error, data);
-      if ((data as any)?.error === "owned_leagues") {
-        await loadOwned();
-        return;
+
+    // supabase-js wraps non-2xx responses as a thrown FunctionsHttpError where
+    // `data` is null and the JSON body lives on `error.context.response`.
+    let body: any = data;
+    if (error && !body) {
+      try {
+        const resp = (error as any)?.context?.response;
+        if (resp && typeof resp.json === "function") {
+          body = await resp.clone().json();
+        }
+      } catch {
+        body = null;
       }
+    }
+
+    if (body?.error === "owned_leagues") {
+      const leagues = (body.leagues ?? []) as OwnedLeague[];
+      setOwned(leagues);
+      setView({ kind: "list" });
+      setConfirmText("");
+      toast.error(t("deleteAccount.mustHandleLeagues"));
+      // refresh from RPC too, but the 409 payload is authoritative
+      loadOwned();
+      return;
+    }
+
+    if (error || body?.error) {
+      console.error("delete-account error:", error, body);
       toast.error(t("deleteAccount.errDelete"));
       return;
     }
