@@ -1,49 +1,61 @@
 ## Bug
 
-In `src/pages/LeaguePage.tsx`, when the user picks a jornada from the "Tabla → Jornada" dropdown (e.g. "Cuartos — Vuelta"), the leaderboard renders the empty-state text **"Aún no hay resultados de esta jornada"** even after the admin has uploaded the match results.
+When the user opens **Profile → Eliminar cuenta**, the dialog skips the "you own leagues" view, shows the typed-`DELETE` input, and after submission only flashes the toast **"No se pudo eliminar la cuenta"** — never offering the transfer/delete-league flow.
 
-### Root cause
+## Root cause
 
-The page hides the leaderboard whenever every member's per-jornada total is `0`:
+Two compounding issues in `src/components/DeleteAccountDialog.tsx`:
 
-```ts
-const allJornadaZero = membersWithJornada.length > 0
-  && membersWithJornada.every(m => m.points_jornada === 0);
-```
+1. **The 409 from `delete-account` is swallowed.** The edge function correctly returns
+   ```json
+   { "error": "owned_leagues", "leagues": [...] }
+   ```
+   with HTTP 409 (confirmed in edge logs: `POST | 409 | .../delete-account`). But `supabase.functions.invoke` treats any non-2xx as a thrown `FunctionsHttpError` — `data` is `null` and the JSON body lives on `error.context.response`. The current code does:
+   ```ts
+   if (error || (data as any)?.error) { ...
+     if ((data as any)?.error === "owned_leagues") { await loadOwned(); return; }
+     toast.error(t("deleteAccount.errDelete"));
+   }
+   ```
+   `data` is `null`, so the `owned_leagues` branch is unreachable and the generic error toast fires. The user never gets bumped back to the transfer view.
 
-`points_jornada` for each member comes from a `jornadaPoints` map populated by the `get_league_jornada_points` RPC. That map starts empty and is only filled when the RPC resolves. There are two ways the screen ends up blank:
+2. **`loadOwned()` shouldn't be the only source of truth.** The dialog opens, calls `get_owned_leagues_blocking_deletion`, and based on the screenshot it returned `[]` for this session even though the server-side check then said the user does own a league. Whatever the cause (auth race, stale session, etc.), the UI should not rely solely on that RPC — the 409 response from the edge function is the authoritative answer and already carries the league list.
 
-1. **RPC failure swallowed silently.** The call destructures only `{ data }` and ignores `error`. If the RPC ever errors (auth race on session refresh, transient PostgREST hiccup), `data` is `null`, the map stays `{}`, every member resolves to `0`, and the empty state wins — even though the DB has scored picks (verified for league `Friends of Santana`, jornada 19: Eva 9, Nic 6, Nic2 9).
-2. **Bad UX even when correct.** If a jornada genuinely has 0 points across the board (e.g. nobody picked, or no result yet), the page hides the entire standings list instead of showing the members at 0. That's misleading and indistinguishable from a real bug.
+## How transfer is supposed to work
 
-There is also a related data-quality issue we are NOT addressing in this fix (mentioning so it doesn't get conflated): `league_members.points_jornada` is stale for some users because the `score_match_results` trigger only refreshes the highest open jornada, and there are currently two open jornadas (J18 and J19). The per-jornada leaderboard does not depend on this column — it reads from `picks` via the RPC — so this fix stands on its own.
+1. Dialog opens → calls `get_owned_leagues_blocking_deletion` → if rows come back, the user sees a list of owned leagues with **Transferir** (when there are other members) and **Eliminar liga** buttons.
+2. **Transferir** opens a member picker that calls the `transfer_league_ownership(_league_id, _new_owner)` RPC.
+3. **Eliminar liga** confirms in-line then calls the `delete_league(_league_id)` RPC.
+4. Once the owned list is empty, the typed-`DELETE` input appears and submits to the `delete-account` edge function, which deletes the auth user.
 
-## Plan
+The wiring exists; step 1 just isn't surviving the 409 when the initial RPC misses.
 
-Scope: frontend only, file `src/pages/LeaguePage.tsx`.
+## Plan (frontend + edge function only)
 
-1. **Surface RPC errors instead of swallowing them.**
-   - Destructure both `{ data, error }` from the `get_league_jornada_points` call.
-   - On error: `console.error(error)` and show a `toast` with an i18n'd "Could not load standings" message so the failure is visible and we can diagnose recurrences.
+### `src/components/DeleteAccountDialog.tsx`
+- In `handleDeleteAccount`, when `error` is set, read the response body off the thrown `FunctionsHttpError`:
+  ```ts
+  const body = await (error as any)?.context?.response?.json?.().catch(() => null);
+  ```
+- If `body?.error === "owned_leagues"`:
+  - Map `body.leagues` into the `OwnedLeague[]` shape and `setOwned(...)` directly, so the user immediately sees the transfer/delete list even when the initial RPC returned empty.
+  - Reset `confirmText` and switch back to `view = { kind: "list" }`.
+  - Show an info toast `t("deleteAccount.mustHandleLeagues")`: "Primero transfiere o elimina las ligas que posees."
+  - Still call `loadOwned()` afterward to keep state fresh.
+- Only fall through to the generic `errDelete` toast for genuine unknown errors.
 
-2. **Stop hiding the leaderboard on all-zeros.**
-   - Remove the `allJornadaZero` early-return for the row list.
-   - Always render the sorted member rows when the league has members, even if everyone is at 0 for the selected jornada. This matches the "General" tab's behavior and makes the page reflect reality after a results upload.
+### `supabase/functions/delete-account/index.ts`
+- Enrich the 409 payload so the frontend can render the same UI without a second round-trip. Replace the `select("id, name")` with a query that joins `league_members` to compute `member_count` and `can_solo_delete` (other_member_count === 0), returning items shaped like the RPC: `{ league_id, name, member_count, can_solo_delete }`.
 
-3. **Replace the empty-state with a contextual hint.**
-   - Above the rows (under the jornada selector), render a small muted caption only when the selected jornada has no scored picks yet: "No matchday results yet" / "Aún no hay resultados de esta jornada".
-   - Detection: if `Object.keys(jornadaPoints).length === 0` after the RPC resolves successfully, OR if every returned `points` is 0 AND the underlying matches have no `result_1x2` set. To avoid an extra query, the simple, sufficient signal is: the RPC returned successfully and the sum of all `jornadaPoints` values is 0. Show the caption in that case but keep the rows visible underneath.
+### `src/i18n/locales/{en,es}.json`
+- Add `deleteAccount.mustHandleLeagues`:
+  - en: "You still own leagues — transfer or delete them first."
+  - es: "Aún eres dueño de ligas — transfiérelas o elimínalas primero."
 
-4. **i18n.**
-   - Reuse existing `league.noJornadaResults` for the caption.
-   - Add a new key `league.standingsLoadError` in `src/i18n/locales/{en,es}.json` for the toast.
+### Verification
+- In the preview, open Perfil → Zona de peligro → Eliminar cuenta with an account that owns a league. The dialog should now show the league with **Transferir** / **Eliminar liga** buttons, even if the initial RPC misses.
+- Pick **Transferir**, choose a member, confirm — list refreshes and the league is gone.
+- Once no leagues remain, type `DELETE` and submit — account deletion completes.
 
-5. **Verification.**
-   - Build runs automatically.
-   - Manually verify in the preview against the `Friends of Santana` league with "Cuartos — Vuelta" selected: rows should now show Eva 9, Nic2 9, Nic 6, others 0, and no empty-state takeover.
-   - If the toast fires, capture the RPC error from the console for follow-up.
-
-### Out of scope (separate bugs to address next)
-
-- Stale `league_members.points_jornada` when more than one jornada is open at once (trigger logic in `score_match_results`).
-- Multiple jornadas being left in `status='open'` simultaneously (J18 and J19 are both open today).
+### Out of scope
+- Why `get_owned_leagues_blocking_deletion` occasionally returns `[]` for an owner (likely an auth/session race) — the 409 fallback above masks it. If it keeps happening after this fix we can dig into the RPC separately.
