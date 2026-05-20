@@ -1,61 +1,44 @@
-## Bug
+## Goal
+Make account deletion work for league owners, including this exact case:
+- User `3fb089e3-b28e-4e2a-a653-09082ef3421e`
+- League `Los de la Terced Edad!` (`7859`)
+- Only 1 member remains
 
-When the user opens **Profile → Eliminar cuenta**, the dialog skips the "you own leagues" view, shows the typed-`DELETE` input, and after submission only flashes the toast **"No se pudo eliminar la cuenta"** — never offering the transfer/delete-league flow.
+## Findings
+- The database matches the report: league `7859` is owned by that user and currently has only one member row, so the user should be able to resolve the blocker by deleting the league and then deleting the account.
+- The stored procedures needed for this flow already exist: `get_owned_leagues_blocking_deletion`, `transfer_league_ownership`, and `delete_league`.
+- The current UI is still falling back to the generic "No se pudo eliminar la cuenta" path instead of reliably surfacing the owned-league resolution UI.
 
-## Root cause
+## Plan
+1. Harden the delete-account dialog error handling.
+   - Make the dialog reliably extract owned-league data from Edge Function conflict responses, even when Supabase returns a wrapped error object.
+   - Prevent the flow from dropping back to the plain `DELETE` confirmation screen when the account still owns leagues.
 
-Two compounding issues in `src/components/DeleteAccountDialog.tsx`:
+2. Fix the solo-owner path.
+   - Ensure a league with no other members clearly shows the "Eliminar quiniela" action.
+   - After deleting the league, immediately refresh owned leagues and unlock account deletion without forcing the user to reopen the dialog.
 
-1. **The 409 from `delete-account` is swallowed.** The edge function correctly returns
-   ```json
-   { "error": "owned_leagues", "leagues": [...] }
-   ```
-   with HTTP 409 (confirmed in edge logs: `POST | 409 | .../delete-account`). But `supabase.functions.invoke` treats any non-2xx as a thrown `FunctionsHttpError` — `data` is `null` and the JSON body lives on `error.context.response`. The current code does:
-   ```ts
-   if (error || (data as any)?.error) { ...
-     if ((data as any)?.error === "owned_leagues") { await loadOwned(); return; }
-     toast.error(t("deleteAccount.errDelete"));
-   }
-   ```
-   `data` is `null`, so the `owned_leagues` branch is unreachable and the generic error toast fires. The user never gets bumped back to the transfer view.
+3. Fix the transfer-owner path.
+   - Verify the member-loading step excludes the current owner but still returns valid transferrable members.
+   - Improve the transfer flow so failures are surfaced clearly instead of appearing as a dead end.
+   - Confirm the UI only offers transfer when another eligible member exists.
 
-2. **`loadOwned()` shouldn't be the only source of truth.** The dialog opens, calls `get_owned_leagues_blocking_deletion`, and based on the screenshot it returned `[]` for this session even though the server-side check then said the user does own a league. Whatever the cause (auth race, stale session, etc.), the UI should not rely solely on that RPC — the 409 response from the edge function is the authoritative answer and already carries the league list.
+4. Add targeted safeguards for stale or partial state.
+   - Reset dialog state cleanly between list / transfer / confirm-delete views.
+   - Avoid races where the initial owned-leagues RPC says one thing and the edge function says another.
+   - Prefer the server response as the source of truth when deletion is blocked.
 
-## How transfer is supposed to work
+5. Validate the exact user scenario end-to-end.
+   - Confirm the reported solo-owner account now sees the league-resolution UI.
+   - Confirm a solo-owned league can be deleted, then the account can be deleted.
+   - Confirm a multi-member league can transfer ownership successfully.
 
-1. Dialog opens → calls `get_owned_leagues_blocking_deletion` → if rows come back, the user sees a list of owned leagues with **Transferir** (when there are other members) and **Eliminar liga** buttons.
-2. **Transferir** opens a member picker that calls the `transfer_league_ownership(_league_id, _new_owner)` RPC.
-3. **Eliminar liga** confirms in-line then calls the `delete_league(_league_id)` RPC.
-4. Once the owned list is empty, the typed-`DELETE` input appears and submits to the `delete-account` edge function, which deletes the auth user.
+## Technical details
+- Frontend scope: `src/components/DeleteAccountDialog.tsx` and any minimal surrounding profile wiring if needed.
+- Backend scope: only if needed after verification; likely limited to `supabase/functions/delete-account/index.ts` for clearer conflict payloads or compatibility handling.
+- No schema changes are planned unless debugging proves one of the existing RPCs is incorrect.
 
-The wiring exists; step 1 just isn't surviving the 409 when the initial RPC misses.
-
-## Plan (frontend + edge function only)
-
-### `src/components/DeleteAccountDialog.tsx`
-- In `handleDeleteAccount`, when `error` is set, read the response body off the thrown `FunctionsHttpError`:
-  ```ts
-  const body = await (error as any)?.context?.response?.json?.().catch(() => null);
-  ```
-- If `body?.error === "owned_leagues"`:
-  - Map `body.leagues` into the `OwnedLeague[]` shape and `setOwned(...)` directly, so the user immediately sees the transfer/delete list even when the initial RPC returned empty.
-  - Reset `confirmText` and switch back to `view = { kind: "list" }`.
-  - Show an info toast `t("deleteAccount.mustHandleLeagues")`: "Primero transfiere o elimina las ligas que posees."
-  - Still call `loadOwned()` afterward to keep state fresh.
-- Only fall through to the generic `errDelete` toast for genuine unknown errors.
-
-### `supabase/functions/delete-account/index.ts`
-- Enrich the 409 payload so the frontend can render the same UI without a second round-trip. Replace the `select("id, name")` with a query that joins `league_members` to compute `member_count` and `can_solo_delete` (other_member_count === 0), returning items shaped like the RPC: `{ league_id, name, member_count, can_solo_delete }`.
-
-### `src/i18n/locales/{en,es}.json`
-- Add `deleteAccount.mustHandleLeagues`:
-  - en: "You still own leagues — transfer or delete them first."
-  - es: "Aún eres dueño de ligas — transfiérelas o elimínalas primero."
-
-### Verification
-- In the preview, open Perfil → Zona de peligro → Eliminar cuenta with an account that owns a league. The dialog should now show the league with **Transferir** / **Eliminar liga** buttons, even if the initial RPC misses.
-- Pick **Transferir**, choose a member, confirm — list refreshes and the league is gone.
-- Once no leagues remain, type `DELETE` and submit — account deletion completes.
-
-### Out of scope
-- Why `get_owned_leagues_blocking_deletion` occasionally returns `[]` for an owner (likely an auth/session race) — the 409 fallback above masks it. If it keeps happening after this fix we can dig into the RPC separately.
+## Success criteria
+- A user who still owns leagues never gets stuck on a generic delete-account error without a next step.
+- A user with no remaining co-members can delete the league they own and then delete their account.
+- A user with other members can transfer league ownership successfully from the same flow.
