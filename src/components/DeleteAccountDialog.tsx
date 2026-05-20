@@ -122,18 +122,24 @@ const DeleteAccountDialog = ({ open, onOpenChange, onDeleted }: Props) => {
     setDeleting(false);
 
     // supabase-js wraps non-2xx responses as a thrown FunctionsHttpError where
-    // `data` is null and the JSON body lives on `error.context.response`.
+    // `data` is null and `error.context` IS the underlying Response object.
     let body: any = data;
     if (error && !body) {
       try {
-        const resp = (error as any)?.context?.response;
+        const ctx: any = (error as any)?.context;
+        // ctx may be the Response itself, or in older versions { response: Response }
+        const resp: Response | undefined =
+          ctx && typeof ctx.json === "function" ? ctx : ctx?.response;
         if (resp && typeof resp.json === "function") {
           body = await resp.clone().json();
         }
-      } catch {
+      } catch (e) {
+        console.error("delete-account: failed to read error body", e);
         body = null;
       }
     }
+
+    console.log("delete-account response:", { data, error, body });
 
     if (body?.error === "owned_leagues") {
       const leagues = (body.leagues ?? []) as OwnedLeague[];
