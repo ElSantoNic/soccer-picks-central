@@ -1,56 +1,45 @@
 ## Goal
-Prevent authenticated users from tampering with `picks.is_correct` and `picks.points_awarded` via direct PostgREST UPDATEs, while allowing the existing scoring trigger (`score_match_results`) to continue writing those fields.
+Add automated regression tests that attempt the known tampering payloads against `picks` and `league_members` and assert the database (RLS + triggers) blocks them, while confirming the legitimate `score_match_results` path still writes scoring fields.
 
-## Approach
-Add a `BEFORE UPDATE` trigger on `public.picks` that mirrors the pattern already used by `prevent_league_member_points_tampering` on `league_members`:
+## Test stack
+Reuse the existing Vitest + `@supabase/supabase-js` setup already used by `src/test/profiles-rls.test.ts`. New file: `src/test/scoring-tamper.test.ts`. Runs against the live project (`VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY`) using the anon key only — no service-role key in tests.
 
-- If `auth.uid() IS NULL` → system/trigger context → allow.
-- If `current_setting('app.system_write', true) = 'on'` → allow (future-proof, matches existing convention).
-- Otherwise, force `NEW.is_correct := OLD.is_correct` and `NEW.points_awarded := OLD.points_awarded` so user UPDATEs silently cannot change scoring columns (they can still change `pick` itself, subject to the existing `validate_pick` kickoff lock).
+## Fixtures
+Because RLS requires a real authenticated user, the test uses Supabase email+password sign-in against a dedicated test account. Two new repo secrets, read via `import.meta.env`:
+- `VITE_TEST_USER_EMAIL`
+- `VITE_TEST_USER_PASSWORD`
 
-This is preferable to revoking column grants because it keeps the single existing UPDATE policy intact and matches the codebase's established convention.
+If either is missing, the suite calls `it.skip` with a clear message so CI without credentials still passes. We document the one-time setup (create the user in Supabase Auth, add the user to one seed league, ensure at least one pick row exists for them) in a short `src/test/README.md`.
 
-## Migration
+## Test cases
 
-```sql
-CREATE OR REPLACE FUNCTION public.prevent_pick_score_tampering()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  -- Allow elevated/system contexts (scoring trigger runs with auth.uid() IS NULL)
-  IF auth.uid() IS NULL THEN
-    RETURN NEW;
-  END IF;
+### `picks` tamper guard (authenticated user, own row)
+1. INSERT a new pick with `points_awarded: 100, is_correct: true` for an upcoming match → row is created but `points_awarded === 0` and `is_correct === null` (BEFORE INSERT branch of `prevent_pick_score_tampering`, once the trigger is extended; for current trigger, expect the INSERT to succeed with tampered values and mark the test `.fails` to track the open gap).
+2. UPDATE an existing own pick setting `points_awarded: 999, is_correct: true` → request returns no error, but a re-`select` shows scoring columns unchanged.
+3. UPDATE attempting to change `user_id` to another UUID → blocked by RLS WITH CHECK; expect error or zero rows affected.
 
-  -- Allow trusted system writes that opt in via session GUC
-  IF current_setting('app.system_write', true) = 'on' THEN
-    RETURN NEW;
-  END IF;
+### `picks` RLS guard (cross-user)
+4. UPDATE on a pick belonging to a different `user_id` → zero rows updated, scoring columns on that row unchanged when re-read via admin RPC or skipped if no second user is available.
 
-  -- Authenticated users cannot modify scoring columns
-  NEW.is_correct     := OLD.is_correct;
-  NEW.points_awarded := OLD.points_awarded;
-  RETURN NEW;
-END;
-$$;
+### `league_members` tamper guard
+5. UPDATE own membership row setting `points_total: 9999, points_jornada: 9999, badges: ['hacker']` → `prevent_league_member_points_tampering` raises; assert error returned and values unchanged on re-select.
+6. UPDATE attempting to change `display_name` of own row → allowed (sanity check that legitimate edits still work) and propagates through `sync_league_member_display_name` only via profile updates — here we only assert the direct membership `display_name` change is rejected by the tamper trigger, matching current behavior.
 
-CREATE TRIGGER prevent_pick_score_tampering
-BEFORE UPDATE ON public.picks
-FOR EACH ROW
-EXECUTE FUNCTION public.prevent_pick_score_tampering();
-```
+### Anonymous baseline
+7. Anon client cannot SELECT/UPDATE/INSERT into `picks` or `league_members` (mirrors existing `profiles-rls.test.ts` shape).
 
-## Verification
-- User UPDATE setting `points_awarded = 100` → row keeps original `points_awarded` (0 until scored).
-- Admin posts a match result → `score_match_results` trigger runs with `auth.uid()` still set to the admin, BUT it writes directly via `UPDATE public.picks SET is_correct=..., points_awarded=...` inside a `SECURITY DEFINER` function. Since `auth.uid()` is not null for admins, we need the GUC bypass. Update `score_match_results` to call `PERFORM set_config('app.system_write', 'on', true);` before its `UPDATE public.picks` (it already uses this pattern for league_members later in the same function — we just need to move/duplicate it before the picks update).
+### Positive path (system write still works)
+8. Read-only assertion: pick a historical match where `result_1x2` is set and verify that picks tied to it have `points_awarded` in {0, 3} and `is_correct` non-null. This proves the scoring trigger has been writing successfully despite the tamper guard. No write performed by the test.
 
-### Updated `score_match_results` (only the ordering changes)
-Add `PERFORM set_config('app.system_write', 'on', true);` as the first statement after the early returns, so both the `picks` update and the `league_members` update are covered.
+## Running
+- `bunx vitest run src/test/scoring-tamper.test.ts`
+- Add a short note to `README.md` test section: required env vars and that the suite is safe to run against production (only mutates the dedicated test user's own pre-kickoff picks; never asserts success of a tamper write).
 
 ## Files
-- New migration creating `prevent_pick_score_tampering()` + trigger, and replacing `score_match_results()` with the GUC set earlier in the function body.
+- New: `src/test/scoring-tamper.test.ts`
+- New: `src/test/README.md` (one-time fixture setup instructions)
+- No app code, no migrations, no schema changes.
 
-No frontend changes required.
+## Out of scope
+- Wiring the suite into CI — left as a follow-up once the test user is provisioned.
+- Fixing the still-open INSERT-path gap on `picks` (case 1 above) — tracked separately; this plan only adds the test that surfaces it.
