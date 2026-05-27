@@ -1,45 +1,105 @@
-## Goal
-Add automated regression tests that attempt the known tampering payloads against `picks` and `league_members` and assert the database (RLS + triggers) blocks them, while confirming the legitimate `score_match_results` path still writes scoring fields.
+# Switch scoring to 1 point per correct pick
 
-## Test stack
-Reuse the existing Vitest + `@supabase/supabase-js` setup already used by `src/test/profiles-rls.test.ts`. New file: `src/test/scoring-tamper.test.ts`. Runs against the live project (`VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY`) using the anon key only — no service-role key in tests.
+## Root cause
 
-## Fixtures
-Because RLS requires a real authenticated user, the test uses Supabase email+password sign-in against a dedicated test account. Two new repo secrets, read via `import.meta.env`:
-- `VITE_TEST_USER_EMAIL`
-- `VITE_TEST_USER_PASSWORD`
+The `score_match_results` trigger in the database awards 3 points per correct pick:
 
-If either is missing, the suite calls `it.skip` with a clear message so CI without credentials still passes. We document the one-time setup (create the user in Supabase Auth, add the user to one seed league, ensure at least one pick row exists for them) in a short `src/test/README.md`.
+```sql
+points_awarded = CASE WHEN pick = NEW.result_1x2 THEN 3 ELSE 0 END
+```
 
-## Test cases
+The FAQ copy (`about.faqs` in `src/i18n/locales/en.json` / `es.json`) and the PRD both specify 1 point per correct pick. The trigger was written with football-style "3 points for a win" intuition rather than standard quiniela scoring, so the database drifted from the spec. No frontend code hardcodes the multiplier — every points display reads `picks.points_awarded` / `league_members.points_total` / `league_members.points_jornada` directly, so a single trigger change plus a backfill is enough.
 
-### `picks` tamper guard (authenticated user, own row)
-1. INSERT a new pick with `points_awarded: 100, is_correct: true` for an upcoming match → row is created but `points_awarded === 0` and `is_correct === null` (BEFORE INSERT branch of `prevent_pick_score_tampering`, once the trigger is extended; for current trigger, expect the INSERT to succeed with tampered values and mark the test `.fails` to track the open gap).
-2. UPDATE an existing own pick setting `points_awarded: 999, is_correct: true` → request returns no error, but a re-`select` shows scoring columns unchanged.
-3. UPDATE attempting to change `user_id` to another UUID → blocked by RLS WITH CHECK; expect error or zero rows affected.
+## Changes
 
-### `picks` RLS guard (cross-user)
-4. UPDATE on a pick belonging to a different `user_id` → zero rows updated, scoring columns on that row unchanged when re-read via admin RPC or skipped if no second user is available.
+### 1. Migration — update the scoring trigger
 
-### `league_members` tamper guard
-5. UPDATE own membership row setting `points_total: 9999, points_jornada: 9999, badges: ['hacker']` → `prevent_league_member_points_tampering` raises; assert error returned and values unchanged on re-select.
-6. UPDATE attempting to change `display_name` of own row → allowed (sanity check that legitimate edits still work) and propagates through `sync_league_member_display_name` only via profile updates — here we only assert the direct membership `display_name` change is rejected by the tamper trigger, matching current behavior.
+Replace `score_match_results` so a correct pick awards `1` instead of `3`. Keep everything else identical (the `app.system_write` GUC handling, the league_members recomputation loop, the early-exit guards).
 
-### Anonymous baseline
-7. Anon client cannot SELECT/UPDATE/INSERT into `picks` or `league_members` (mirrors existing `profiles-rls.test.ts` shape).
+```sql
+CREATE OR REPLACE FUNCTION public.score_match_results()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  open_jornada_id uuid;
+  affected_user uuid;
+BEGIN
+  IF NEW.result_1x2 IS NULL THEN RETURN NEW; END IF;
+  IF OLD.result_1x2 IS NOT DISTINCT FROM NEW.result_1x2 THEN RETURN NEW; END IF;
+  IF NEW.result_1x2 NOT IN ('1', 'X', '2') THEN RETURN NEW; END IF;
 
-### Positive path (system write still works)
-8. Read-only assertion: pick a historical match where `result_1x2` is set and verify that picks tied to it have `points_awarded` in {0, 3} and `is_correct` non-null. This proves the scoring trigger has been writing successfully despite the tamper guard. No write performed by the test.
+  PERFORM set_config('app.system_write', 'on', true);
 
-## Running
-- `bunx vitest run src/test/scoring-tamper.test.ts`
-- Add a short note to `README.md` test section: required env vars and that the suite is safe to run against production (only mutates the dedicated test user's own pre-kickoff picks; never asserts success of a tamper write).
+  UPDATE public.picks
+  SET is_correct = (pick = NEW.result_1x2),
+      points_awarded = CASE WHEN pick = NEW.result_1x2 THEN 1 ELSE 0 END
+  WHERE match_id = NEW.id;
 
-## Files
-- New: `src/test/scoring-tamper.test.ts`
-- New: `src/test/README.md` (one-time fixture setup instructions)
-- No app code, no migrations, no schema changes.
+  SELECT id INTO open_jornada_id
+  FROM public.jornadas WHERE status = 'open'
+  ORDER BY jornada_number DESC LIMIT 1;
+
+  FOR affected_user IN
+    SELECT DISTINCT user_id FROM public.picks WHERE match_id = NEW.id
+  LOOP
+    UPDATE public.league_members lm
+    SET points_total = COALESCE((SELECT SUM(points_awarded) FROM public.picks WHERE user_id = affected_user), 0),
+        points_jornada = COALESCE((SELECT SUM(points_awarded) FROM public.picks
+                                   WHERE user_id = affected_user AND jornada_id = open_jornada_id), 0)
+    WHERE lm.user_id = affected_user;
+  END LOOP;
+
+  RETURN NEW;
+END;
+$$;
+```
+
+### 2. Migration — backfill existing rows
+
+All previously scored picks have `points_awarded = 3` for correct ones. In the same migration, rewrite them and recompute `league_members` totals. Use the `app.system_write` GUC so the tamper-prevention triggers (`prevent_pick_score_tampering`, `prevent_league_member_points_tampering`) allow the bulk update.
+
+```sql
+DO $$
+DECLARE
+  open_jornada_id uuid;
+BEGIN
+  PERFORM set_config('app.system_write', 'on', true);
+
+  UPDATE public.picks
+  SET points_awarded = CASE WHEN is_correct = true THEN 1 ELSE 0 END
+  WHERE is_correct IS NOT NULL;
+
+  SELECT id INTO open_jornada_id
+  FROM public.jornadas WHERE status = 'open'
+  ORDER BY jornada_number DESC LIMIT 1;
+
+  UPDATE public.league_members lm
+  SET points_total = COALESCE((
+        SELECT SUM(points_awarded) FROM public.picks WHERE user_id = lm.user_id
+      ), 0),
+      points_jornada = CASE
+        WHEN open_jornada_id IS NULL THEN 0
+        ELSE COALESCE((
+          SELECT SUM(points_awarded) FROM public.picks
+          WHERE user_id = lm.user_id AND jornada_id = open_jornada_id
+        ), 0)
+      END
+  WHERE lm.user_id IS NOT NULL;
+END $$;
+```
 
 ## Out of scope
-- Wiring the suite into CI — left as a follow-up once the test user is provisioned.
-- Fixing the still-open INSERT-path gap on `picks` (case 1 above) — tracked separately; this plan only adds the test that surfaces it.
+
+- No FAQ/i18n changes — the copy already says "1 point".
+- No frontend changes — all UIs read scoring columns directly, no hardcoded 3× multiplier anywhere.
+- No change to the tamper-prevention triggers or audit behavior.
+- No change to leaderboards' tie-break logic (none exists today; ties stay ties).
+
+## Verification after apply
+
+1. Spot-check `picks` where `is_correct = true` — every row should now have `points_awarded = 1`.
+2. Spot-check a few `league_members` rows — `points_total` should equal the user's count of correct picks.
+3. Confirm the next match-result update writes `1` (not `3`) via the trigger.
