@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, CheckCircle, AlertCircle, Loader2, Plus, RefreshCw, CalendarDays, Volleyball, Building2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
-type TabType = 'jornada' | 'schedule' | 'results' | 'dashboard';
+type TabType = 'jornada' | 'schedule' | 'results' | 'dashboard' | 'access';
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState<TabType>('schedule');
@@ -13,7 +13,9 @@ const AdminPage = () => {
     { key: 'schedule', label: 'Schedule Upload' },
     { key: 'results', label: 'Results Upload' },
     { key: 'dashboard', label: 'Dashboard' },
+    { key: 'access', label: 'Access Check' },
   ];
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -39,7 +41,9 @@ const AdminPage = () => {
         </div>
 
         {activeTab === 'jornada' && <JornadaManager />}
-        {activeTab === 'schedule' && <ScheduleUpload />}
+        {activeTab === 'dashboard' && <DashboardPanel />}
+        {activeTab === 'access' && <AccessCheck />}
+
         {activeTab === 'results' && <ResultsUpload />}
         {activeTab === 'dashboard' && <DashboardPanel />}
       </div>
@@ -705,4 +709,103 @@ const CSVDropZone = ({ onFile, isUploading }: { onFile: (f: File) => void; isUpl
   );
 };
 
+
+// ─── Access Check ─────────────────────────────────────────────
+const AccessCheck = () => {
+  const [identifier, setIdentifier] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{
+    user_id: string;
+    email: string | null;
+    is_admin: boolean;
+    granted_at: string | null;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const check = async () => {
+    const id = identifier.trim();
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke('admin-check-access', {
+        body: { identifier: id },
+      });
+      if (fnErr) throw fnErr;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      setResult(data as any);
+    } catch (e: any) {
+      setError(e?.message ?? 'Lookup failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">Admin access check</h2>
+        <p className="text-sm text-muted-foreground">
+          Enter an email or user UID to see whether they currently have /admin access.
+        </p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input
+          type="text"
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && check()}
+          placeholder="email@example.com or UUID"
+          className="flex-1 h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        <button
+          onClick={check}
+          disabled={loading || !identifier.trim()}
+          className="h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Check
+        </button>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {result && (
+        <div className="border border-border rounded-md p-4 space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            {result.is_admin ? (
+              <>
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <span className="font-semibold text-foreground">Has /admin access</span>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                <span className="font-semibold text-foreground">No /admin access</span>
+              </>
+            )}
+          </div>
+          <div className="text-muted-foreground">
+            <div><span className="text-foreground">Email:</span> {result.email ?? '—'}</div>
+            <div className="font-mono text-xs break-all">
+              <span className="font-sans text-foreground">UID:</span> {result.user_id}
+            </div>
+            {result.granted_at && (
+              <div><span className="text-foreground">Granted at:</span> {new Date(result.granted_at).toLocaleString()}</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default AdminPage;
+
