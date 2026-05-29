@@ -2,8 +2,9 @@ import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, CheckCircle, AlertCircle, Loader2, Plus, RefreshCw, CalendarDays, Volleyball, Building2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
+import AdminAccessManager from "@/components/admin/AdminAccessManager";
 
-type TabType = 'jornada' | 'schedule' | 'results' | 'dashboard' | 'access';
+type TabType = 'jornada' | 'schedule' | 'results' | 'dashboard' | 'access' | 'manage';
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState<TabType>('schedule');
@@ -14,6 +15,7 @@ const AdminPage = () => {
     { key: 'results', label: 'Results Upload' },
     { key: 'dashboard', label: 'Dashboard' },
     { key: 'access', label: 'Access Check' },
+    { key: 'manage', label: 'Manage Access' },
   ];
 
 
@@ -24,12 +26,12 @@ const AdminPage = () => {
       </header>
 
       <div className="max-w-3xl mx-auto p-4">
-        <div className="flex gap-1 mb-6 border-b border-border">
+        <div className="flex gap-1 mb-6 border-b border-border overflow-x-auto">
           {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.key
                   ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -41,11 +43,11 @@ const AdminPage = () => {
         </div>
 
         {activeTab === 'jornada' && <JornadaManager />}
-        {activeTab === 'dashboard' && <DashboardPanel />}
-        {activeTab === 'access' && <AccessCheck />}
-
+        {activeTab === 'schedule' && <ScheduleUpload />}
         {activeTab === 'results' && <ResultsUpload />}
         {activeTab === 'dashboard' && <DashboardPanel />}
+        {activeTab === 'access' && <AccessCheck />}
+        {activeTab === 'manage' && <AdminAccessManager />}
       </div>
     </div>
   );
