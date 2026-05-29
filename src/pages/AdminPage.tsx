@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, CheckCircle, AlertCircle, Loader2, Plus, RefreshCw, CalendarDays, Volleyball, Building2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
-type TabType = 'jornada' | 'schedule' | 'results' | 'dashboard';
+type TabType = 'jornada' | 'schedule' | 'results' | 'dashboard' | 'access';
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState<TabType>('schedule');
@@ -13,7 +13,9 @@ const AdminPage = () => {
     { key: 'schedule', label: 'Schedule Upload' },
     { key: 'results', label: 'Results Upload' },
     { key: 'dashboard', label: 'Dashboard' },
+    { key: 'access', label: 'Access Check' },
   ];
+
 
   return (
     <div className="min-h-screen bg-background">
