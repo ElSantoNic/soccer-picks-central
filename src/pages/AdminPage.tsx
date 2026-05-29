@@ -41,7 +41,9 @@ const AdminPage = () => {
         </div>
 
         {activeTab === 'jornada' && <JornadaManager />}
-        {activeTab === 'schedule' && <ScheduleUpload />}
+        {activeTab === 'dashboard' && <DashboardPanel />}
+        {activeTab === 'access' && <AccessCheck />}
+
         {activeTab === 'results' && <ResultsUpload />}
         {activeTab === 'dashboard' && <DashboardPanel />}
       </div>
