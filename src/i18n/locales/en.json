@@ -276,5 +276,15 @@
       { "q": "Can I play from Mexico?", "a": "Of course! FC Quiniela works anywhere in the world. You just need an internet connection." },
       { "q": "How are results calculated?", "a": "After each matchday, your picks are compared against the actual Liga MX results. You earn 1 point per correct pick. The leaderboard updates automatically." }
     ]
+  },
+  "joinLeague": {
+    "title": "You were invited to a pool",
+    "subtitle": "Join in to make your picks this matchday.",
+    "joinCta": "Join the pool",
+    "joining": "Joining...",
+    "notFoundTitle": "Invalid link",
+    "notFoundDesc": "This link is invalid or the pool does not exist",
+    "goHome": "Go to home",
+    "signInPrompt": "Sign in to join"
   }
 }
