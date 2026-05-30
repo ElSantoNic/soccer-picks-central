@@ -284,7 +284,12 @@
     "joining": "Uniéndose...",
     "notFoundTitle": "Enlace no válido",
     "notFoundDesc": "Este enlace no es válido o la quiniela no existe",
+    "notFoundCode": "Código: {{code}}",
     "goHome": "Ir al inicio",
-    "signInPrompt": "Inicia sesión para unirte"
+    "signInPrompt": "Inicia sesión para unirte",
+    "searching": "Buscando quiniela...",
+    "networkErrorTitle": "No se pudo cargar la quiniela",
+    "networkErrorDesc": "Revisa tu conexión e inténtalo de nuevo.",
+    "retry": "Reintentar"
   }
 }
