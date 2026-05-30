@@ -13,6 +13,7 @@ import LeaguesListPage from "./pages/LeaguesListPage";
 import ProfilePage from "./pages/ProfilePage";
 import AboutPage from "./pages/AboutPage";
 import AdminPage from "./pages/AdminPage";
+import JoinLeaguePage from "./pages/JoinLeaguePage";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 import NotFound from "./pages/NotFound";
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/leagues" element={<LeaguesListPage />} />
             <Route path="/league/create" element={<CreateLeaguePage />} />
             <Route path="/league/:leagueId" element={<LeaguePage />} />
+            <Route path="/l/:joinCode" element={<JoinLeaguePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/admin" element={<ProtectedAdminRoute><AdminPage /></ProtectedAdminRoute>} />

@@ -59,6 +59,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (session?.user) {
           // Use setTimeout to avoid potential deadlocks with Supabase auth
           setTimeout(() => fetchProfile(session.user.id), 0);
+
+          if (_event === "SIGNED_IN") {
+            const pending = sessionStorage.getItem("pendingJoinCode");
+            if (pending) {
+              sessionStorage.removeItem("pendingJoinCode");
+              const target = `/l/${pending}`;
+              if (window.location.pathname !== target) {
+                window.location.replace(target);
+              }
+            }
+          }
         } else {
           setProfile(null);
         }

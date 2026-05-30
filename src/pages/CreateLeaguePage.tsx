@@ -77,7 +77,7 @@ const CreateLeaguePage = () => {
     setShowShare(true);
   };
 
-  const inviteUrl = `fcquiniela.app/l/${joinCode}`;
+  const inviteUrl = `https://fcquiniela.app/l/${joinCode}`;
   const inviteMsg = t("createLeague.inviteMessage", { name, url: inviteUrl });
 
   if (showShare) {

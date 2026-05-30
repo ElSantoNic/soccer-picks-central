@@ -276,5 +276,15 @@
       { "q": "¿Puedo jugar desde México?", "a": "¡Claro! FC Quiniela funciona en cualquier parte del mundo. Solo necesitas conexión a internet." },
       { "q": "¿Cómo se calculan los resultados?", "a": "Después de cada jornada, se comparan tus picks con los resultados reales de Liga MX. Ganas 1 punto por cada acierto. La tabla se actualiza automáticamente." }
     ]
+  },
+  "joinLeague": {
+    "title": "Te invitaron a una quiniela",
+    "subtitle": "Únete para hacer tus picks de esta jornada.",
+    "joinCta": "Unirse a la quiniela",
+    "joining": "Uniéndose...",
+    "notFoundTitle": "Enlace no válido",
+    "notFoundDesc": "Este enlace no es válido o la quiniela no existe",
+    "goHome": "Ir al inicio",
+    "signInPrompt": "Inicia sesión para unirte"
   }
 }
