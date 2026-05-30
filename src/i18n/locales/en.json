@@ -284,7 +284,12 @@
     "joining": "Joining...",
     "notFoundTitle": "Invalid link",
     "notFoundDesc": "This link is invalid or the pool does not exist",
+    "notFoundCode": "Code: {{code}}",
     "goHome": "Go to home",
-    "signInPrompt": "Sign in to join"
+    "signInPrompt": "Sign in to join",
+    "searching": "Looking up pool...",
+    "networkErrorTitle": "Couldn't load the pool",
+    "networkErrorDesc": "Check your connection and try again.",
+    "retry": "Retry"
   }
 }
