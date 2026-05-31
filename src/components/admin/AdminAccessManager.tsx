@@ -27,7 +27,7 @@ const AdminAccessManager = () => {
       body: { action: "list" },
     });
     if (error || (data as any)?.error) {
-      toast.error("Failed to load admins", { description: error?.message ?? (data as any)?.error });
+      toast.error("Failed to load admins");
     } else {
       setAdmins((data as any).admins ?? []);
     }
