@@ -27,7 +27,7 @@ const AdminAccessManager = () => {
       body: { action: "list" },
     });
     if (error || (data as any)?.error) {
-      toast.error("Failed to load admins", { description: error?.message ?? (data as any)?.error });
+      toast.error("Failed to load admins");
     } else {
       setAdmins((data as any).admins ?? []);
     }
@@ -47,7 +47,7 @@ const AdminAccessManager = () => {
     });
     setGranting(false);
     if (error || (data as any)?.error) {
-      toast.error("Could not grant access", { description: error?.message ?? (data as any)?.error });
+      toast.error("Could not grant access");
       return;
     }
     toast.success("Admin access granted", { description: (data as any).email ?? (data as any).user_id });
@@ -67,7 +67,7 @@ const AdminAccessManager = () => {
     });
     setRevokingId(null);
     if (error || (data as any)?.error) {
-      toast.error("Could not revoke access", { description: error?.message ?? (data as any)?.error });
+      toast.error("Could not revoke access");
       return;
     }
     toast.success("Admin access revoked");
