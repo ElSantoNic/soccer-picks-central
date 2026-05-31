@@ -1,28 +1,28 @@
 ## Goal
-Improve the loading and error UI on `JoinLeaguePage.tsx` so the experience feels polished while the league is fetched and when an invalid join code is encountered.
+Make invite links reflect whatever domain the app is served from (preview, production, custom domain).
 
-## Changes
+## Scope
+Most of the requested behavior is already in place:
+- `/l/:joinCode` route → `JoinLeaguePage.tsx` (loading, not-found, error, signed-out, signed-in member/non-member flows).
+- Spanish copy via `joinLeague.*` i18n keys, including the not-found message and "Unirse a la quiniela" CTA.
+- `AuthContext` post-sign-in handler reads `sessionStorage.pendingJoinCode` and redirects to `/l/{code}`.
 
-### 1. Loading state
-- Replace the plain "Loading…" text with a centered, animated `Loader2` spinner from `lucide-react` plus a short label ("Buscando quiniela…").
-- Wrap it in the same `max-w-lg mx-auto` container for layout consistency.
+The only actual gap is the hardcoded invite domain.
 
-### 2. Error states (clearer separation)
-- **Not found** (invalid join code): keep the existing card layout but add a small icon variation and a secondary hint line (e.g. code shown to the user) so it’s unmistakable that the link is broken.
-- **Network / RPC error**: add a new error card (distinct from "not found") with an `AlertCircle` icon, a "No se pudo cargar la quiniela" message, and a **Retry** button that re-runs the fetch.
-- Use the shadcn `Alert` variant style (destructive) for the network error card to visually distinguish it from the empty-state "not found" card.
+## Change
 
-### 3. Styling consistency
-- Ensure both loading and error states use the same page shell (`min-h-screen bg-background`, `TopBar`, `max-w-lg mx-auto px-4 py-10`) so there is no layout jump when the real content loads.
+### `src/pages/CreateLeaguePage.tsx`
+Replace:
+```ts
+const inviteUrl = `https://fcquiniela.app/l/${joinCode}`;
+```
+with:
+```ts
+const inviteUrl = `${window.location.origin}/l/${joinCode}`;
+```
 
-## i18n
-Add the new strings to `es.json` and `en.json` under the `joinLeague` namespace:
-- `searching` / `searchingTitle`
-- `networkError` / `retry`
+That's the entire change. No other files, no i18n updates, no backend changes.
 
-## Files touched
-- `src/pages/JoinLeaguePage.tsx`
-- `src/i18n/locales/es.json`
-- `src/i18n/locales/en.json`
-
-No new dependencies or backend changes needed.
+## Out of scope (intentionally not changing)
+- Sign-in flow stays at `/auth` (Google + OTP + password) rather than jumping straight into Google OAuth.
+- sessionStorage key stays `pendingJoinCode`.
