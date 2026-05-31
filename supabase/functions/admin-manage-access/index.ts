@@ -107,6 +107,6 @@ Deno.serve(async (req) => {
     return json(400, { error: "Unknown action" });
   } catch (err) {
     console.error("admin-manage-access error:", err);
-    return json(500, { error: (err as Error).message ?? "Internal error" });
+    return json(500, { error: "Internal error" });
   }
 });
