@@ -47,7 +47,7 @@ const AdminAccessManager = () => {
     });
     setGranting(false);
     if (error || (data as any)?.error) {
-      toast.error("Could not grant access", { description: error?.message ?? (data as any)?.error });
+      toast.error("Could not grant access");
       return;
     }
     toast.success("Admin access granted", { description: (data as any).email ?? (data as any).user_id });
