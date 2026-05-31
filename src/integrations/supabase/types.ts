@@ -332,6 +332,10 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_league_member: {
+        Args: { _league_id: string; _user_id: string }
+        Returns: boolean
+      }
       transfer_league_ownership: {
         Args: { _league_id: string; _new_owner: string }
         Returns: undefined
