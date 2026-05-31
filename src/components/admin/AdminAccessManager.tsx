@@ -67,7 +67,7 @@ const AdminAccessManager = () => {
     });
     setRevokingId(null);
     if (error || (data as any)?.error) {
-      toast.error("Could not revoke access", { description: error?.message ?? (data as any)?.error });
+      toast.error("Could not revoke access");
       return;
     }
     toast.success("Admin access revoked");
