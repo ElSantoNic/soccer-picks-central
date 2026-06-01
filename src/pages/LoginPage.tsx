@@ -31,6 +31,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const SHOW_FULL_AUTH_UI = false;
 
   const [setupOpen, setSetupOpen] = useState(false);
   const [setupEmail, setSetupEmail] = useState("");
@@ -183,108 +184,112 @@ const LoginPage = () => {
         <div className="bg-card rounded-2xl p-6 border border-border">
           {step === "input" ? (
             <>
-              <div className="grid grid-cols-3 bg-secondary rounded-lg overflow-hidden mb-6">
-                <button
-                  onClick={() => setMethod("email")}
-                  className={`py-2.5 text-xs font-semibold transition-colors ${
-                    method === "email" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                  }`}
-                >
-                  {t("auth.tabEmail")}
-                </button>
-                <button
-                  onClick={() => setMethod("phone")}
-                  className={`py-2.5 text-xs font-semibold transition-colors ${
-                    method === "phone" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                  }`}
-                >
-                  {t("auth.tabSms")}
-                </button>
-                <button
-                  onClick={() => setMethod("password")}
-                  className={`py-2.5 text-xs font-semibold transition-colors ${
-                    method === "password" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                  }`}
-                >
-                  {t("auth.tabPassword")}
-                </button>
-              </div>
-
-              {method === "email" && (
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.labelEmail")}</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t("auth.placeholderEmail")}
-                    className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
-                  />
-                </div>
-              )}
-
-              {method === "phone" && (
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">
-                    {t("auth.labelPhone")}
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder={t("auth.placeholderPhone")}
-                    className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
-                  />
-                </div>
-              )}
-
-              {method === "password" && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.labelEmail")}</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder={t("auth.placeholderEmail")}
-                      className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
+              {SHOW_FULL_AUTH_UI && (
+                <>
+                  <div className="grid grid-cols-3 bg-secondary rounded-lg overflow-hidden mb-6">
+                    <button
+                      onClick={() => setMethod("email")}
+                      className={`py-2.5 text-xs font-semibold transition-colors ${
+                        method === "email" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {t("auth.tabEmail")}
+                    </button>
+                    <button
+                      onClick={() => setMethod("phone")}
+                      className={`py-2.5 text-xs font-semibold transition-colors ${
+                        method === "phone" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {t("auth.tabSms")}
+                    </button>
+                    <button
+                      onClick={() => setMethod("password")}
+                      className={`py-2.5 text-xs font-semibold transition-colors ${
+                        method === "password" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {t("auth.tabPassword")}
+                    </button>
                   </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.labelPassword")}</label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={t("auth.placeholderPassword")}
-                      className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                      onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
-                    />
+
+                  {method === "email" && (
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.labelEmail")}</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder={t("auth.placeholderEmail")}
+                        className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
+                      />
+                    </div>
+                  )}
+
+                  {method === "phone" && (
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">
+                        {t("auth.labelPhone")}
+                      </label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder={t("auth.placeholderPhone")}
+                        className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
+                      />
+                    </div>
+                  )}
+
+                  {method === "password" && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.labelEmail")}</label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder={t("auth.placeholderEmail")}
+                          className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1.5 block">{t("auth.labelPassword")}</label>
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder={t("auth.placeholderPassword")}
+                          className="w-full px-4 py-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                          onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={method === "password" ? handlePasswordLogin : handleSendOtp}
+                    disabled={loading}
+                    className="w-full mt-4 py-3 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
+                  >
+                    {loading
+                      ? method === "password"
+                        ? t("auth.btnSigningIn")
+                        : t("auth.btnSending")
+                      : method === "password"
+                        ? t("auth.btnSignIn")
+                        : t("auth.btnSendCode")}
+                  </button>
+
+                  <div className="flex items-center gap-3 my-5">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground">{t("auth.orAlso")}</span>
+                    <div className="flex-1 h-px bg-border" />
                   </div>
-                </div>
+                </>
               )}
-
-              <button
-                onClick={method === "password" ? handlePasswordLogin : handleSendOtp}
-                disabled={loading}
-                className="w-full mt-4 py-3 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
-              >
-                {loading
-                  ? method === "password"
-                    ? t("auth.btnSigningIn")
-                    : t("auth.btnSending")
-                  : method === "password"
-                    ? t("auth.btnSignIn")
-                    : t("auth.btnSendCode")}
-              </button>
-
-              <div className="flex items-center gap-3 my-5">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground">{t("auth.orAlso")}</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
 
               <button
                 onClick={handleGoogleLogin}
@@ -300,7 +305,7 @@ const LoginPage = () => {
                 {t("auth.continueGoogle")}
               </button>
 
-              {method === "password" && (
+              {SHOW_FULL_AUTH_UI && method === "password" && (
                 <button
                   onClick={() => setSetupOpen(true)}
                   className="w-full mt-3 py-2 text-xs text-primary hover:underline transition-colors"
@@ -308,49 +313,54 @@ const LoginPage = () => {
                   {t("auth.firstTimePassword")}
                 </button>
               )}
-
             </>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground mb-4 text-center">
-                {t("auth.otpPrompt")}{" "}
-                <span className="font-semibold text-foreground">
-                  {method === "email" ? email : phone}
-                </span>
-              </p>
+              {SHOW_FULL_AUTH_UI && (
+                <>
+                  <p className="text-sm text-muted-foreground mb-4 text-center">
+                    {t("auth.otpPrompt")}{" "}
+                    <span className="font-semibold text-foreground">
+                      {method === "email" ? email : phone}
+                    </span>
+                  </p>
 
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="000000"
-                maxLength={6}
-                className="w-full px-4 py-4 rounded-lg border border-input bg-background text-center text-2xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-ring"
-                autoFocus
-                onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
-              />
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="000000"
+                    maxLength={6}
+                    className="w-full px-4 py-4 rounded-lg border border-input bg-background text-center text-2xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-ring"
+                    autoFocus
+                    onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
+                  />
 
-              <button
-                onClick={handleVerifyOtp}
-                disabled={loading}
-                className="w-full mt-4 py-3 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
-              >
-                {loading ? t("auth.verifying") : t("auth.verify")}
-              </button>
+                  <button
+                    onClick={handleVerifyOtp}
+                    disabled={loading}
+                    className="w-full mt-4 py-3 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
+                  >
+                    {loading ? t("auth.verifying") : t("auth.verify")}
+                  </button>
 
-              <button
-                onClick={() => { setStep("input"); setOtp(""); }}
-                className="w-full mt-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {method === "email" ? t("auth.changeEmail") : t("auth.changePhone")}
-              </button>
+                  <button
+                    onClick={() => { setStep("input"); setOtp(""); }}
+                    className="w-full mt-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {method === "email" ? t("auth.changeEmail") : t("auth.changePhone")}
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          {t("auth.tagline")}
-        </p>
+        {SHOW_FULL_AUTH_UI && (
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            {t("auth.tagline")}
+          </p>
+        )}
       </div>
 
       <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
