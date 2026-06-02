@@ -88,7 +88,7 @@ const JoinLeaguePage = () => {
   const handleJoin = async () => {
     if (!league || !joinCode) return;
     if (!user) {
-      sessionStorage.setItem("pendingJoinCode", joinCode);
+      sessionStorage.setItem("pendingJoinUrl", `/l/${joinCode}`);
       navigate("/auth");
       return;
     }
