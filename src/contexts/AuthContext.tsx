@@ -61,12 +61,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setTimeout(() => fetchProfile(session.user.id), 0);
 
           if (_event === "SIGNED_IN") {
-            const pending = sessionStorage.getItem("pendingJoinCode");
-            if (pending) {
-              sessionStorage.removeItem("pendingJoinCode");
-              const target = `/l/${pending}`;
-              if (window.location.pathname !== target) {
-                window.location.replace(target);
+            const pendingUrl = sessionStorage.getItem("pendingJoinUrl");
+            if (pendingUrl && pendingUrl.startsWith("/l/")) {
+              sessionStorage.removeItem("pendingJoinUrl");
+              if (window.location.pathname !== pendingUrl) {
+                window.location.replace(pendingUrl);
               }
             }
           }
