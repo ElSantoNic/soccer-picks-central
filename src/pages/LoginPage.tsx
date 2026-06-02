@@ -31,7 +31,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const SHOW_FULL_AUTH_UI = false;
+  const SHOW_FULL_AUTH_UI = import.meta.env.VITE_SHOW_FULL_AUTH_UI === "true";
 
   const [setupOpen, setSetupOpen] = useState(false);
   const [setupEmail, setSetupEmail] = useState("");
