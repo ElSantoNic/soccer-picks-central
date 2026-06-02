@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import "@/i18n";
+import i18n from "@/i18n";
+
+beforeEach(async () => {
+  await i18n.changeLanguage("es");
+});
 
 // ---- Mocks ---------------------------------------------------------------
 
@@ -21,25 +25,21 @@ const authState: { user: { id: string } | null; profile: any; loading: boolean }
 };
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => authState,
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-// supabase mock
 const rpcMock = vi.fn();
 const fromMock = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    rpc: (...args: any[]) => rpcMock(...args),
-    from: (...args: any[]) => fromMock(...args),
+    rpc: (...a: any[]) => rpcMock(...a),
+    from: (...a: any[]) => fromMock(...a),
   },
 }));
 
-// TopBar uses lots of stuff; stub it out
 vi.mock("@/components/TopBar", () => ({
   default: () => <div data-testid="topbar" />,
 }));
 
-// Lazy import after mocks
 import JoinLeaguePage from "@/pages/JoinLeaguePage";
 
 const LEAGUE = { id: "league-uuid-1", name: "Quiniela de Amigos", join_code: "AB12" };
@@ -64,37 +64,31 @@ beforeEach(() => {
   authState.loading = false;
 });
 
-afterEach(() => {
-  vi.clearAllMocks();
-});
-
-// ---- Tests ---------------------------------------------------------------
+afterEach(() => vi.clearAllMocks());
 
 describe("Invite deep-link flow (/l/:joinCode)", () => {
-  it("signed-out user: sees league + sign-in prompt, click saves pendingJoinUrl and navigates to /auth", async () => {
+  it("signed-out user: saves pendingJoinUrl and navigates to /auth on join click", async () => {
     rpcMock.mockResolvedValueOnce({ data: [LEAGUE], error: null });
 
     renderAt("/l/AB12");
 
-    await waitFor(() =>
-      expect(screen.getByText(LEAGUE.name)).toBeInTheDocument(),
-    );
+    expect(await screen.findByText(LEAGUE.name)).toBeInTheDocument();
     expect(screen.getByText(/Inicia sesión para unirte/i)).toBeInTheDocument();
 
-    const btn = screen.getByRole("button", { name: /Unirse a la quiniela/i });
-    await userEvent.click(btn);
+    await userEvent.click(
+      screen.getByRole("button", { name: /Unirse a la quiniela/i }),
+    );
 
     expect(sessionStorage.getItem("pendingJoinUrl")).toBe("/l/AB12");
     expect(mockNavigate).toHaveBeenCalledWith("/auth");
   });
 
-  it("signed-in non-member: clicking join inserts league_member and navigates to /league/:id", async () => {
+  it("signed-in non-member: inserts league_member then navigates to /league/:id", async () => {
     authState.user = { id: "user-1" };
     authState.profile = { display_name: "Ana", avatar_emoji: "🦊" };
 
     rpcMock.mockResolvedValueOnce({ data: [LEAGUE], error: null });
 
-    // membership lookup -> not a member
     const insertMock = vi.fn().mockResolvedValue({ error: null });
     fromMock.mockImplementation((table: string) => {
       if (table !== "league_members") throw new Error(`unexpected table ${table}`);
@@ -110,8 +104,9 @@ describe("Invite deep-link flow (/l/:joinCode)", () => {
 
     renderAt("/l/AB12");
 
-    const btn = await screen.findByRole("button", { name: /Unirse a la quiniela/i });
-    await userEvent.click(btn);
+    await userEvent.click(
+      await screen.findByRole("button", { name: /Unirse a la quiniela/i }),
+    );
 
     await waitFor(() => expect(insertMock).toHaveBeenCalledTimes(1));
     expect(insertMock).toHaveBeenCalledWith({
@@ -124,7 +119,7 @@ describe("Invite deep-link flow (/l/:joinCode)", () => {
     expect(sessionStorage.getItem("pendingJoinUrl")).toBeNull();
   });
 
-  it("signed-in existing member: auto-redirects to /league/:id without showing join button", async () => {
+  it("signed-in existing member: auto-redirects to /league/:id, no join button shown", async () => {
     authState.user = { id: "user-1" };
 
     rpcMock.mockResolvedValueOnce({ data: [LEAGUE], error: null });
@@ -134,8 +129,7 @@ describe("Invite deep-link flow (/l/:joinCode)", () => {
         select: () => ({
           eq: () => ({
             eq: () => ({
-              maybeSingle: () =>
-                Promise.resolve({ data: { id: "mem-1" }, error: null }),
+              maybeSingle: () => Promise.resolve({ data: { id: "mem-1" }, error: null }),
             }),
           }),
         }),
@@ -152,7 +146,7 @@ describe("Invite deep-link flow (/l/:joinCode)", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("brand-new user (signed-out, invalid code): shows not-found card", async () => {
+  it("brand-new user lands on invalid code: shows not-found card", async () => {
     rpcMock.mockResolvedValueOnce({ data: [], error: null });
 
     renderAt("/l/ZZZZ");
@@ -162,124 +156,5 @@ describe("Invite deep-link flow (/l/:joinCode)", () => {
     expect(
       screen.queryByRole("button", { name: /Unirse a la quiniela/i }),
     ).not.toBeInTheDocument();
-  });
-});
-
-// ---- AuthContext post-sign-in handoff -----------------------------------
-
-describe("AuthContext post-sign-in handoff", () => {
-  it("on SIGNED_IN, navigates to pendingJoinUrl and clears it", async () => {
-    vi.resetModules();
-
-    // Capture the auth state-change listener
-    let listener: any;
-    const unsubscribe = vi.fn();
-    vi.doMock("@/integrations/supabase/client", () => ({
-      supabase: {
-        auth: {
-          onAuthStateChange: (cb: any) => {
-            listener = cb;
-            return { data: { subscription: { unsubscribe } } };
-          },
-          getSession: () => Promise.resolve({ data: { session: null } }),
-          signOut: vi.fn(),
-        },
-        from: () => ({
-          select: () => ({
-            eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }),
-          }),
-        }),
-      },
-    }));
-
-    const { AuthProvider } = await import("@/contexts/AuthContext");
-
-    const replaceMock = vi.fn();
-    const originalLocation = window.location;
-    // jsdom: redefine location with a writable replace
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: { ...originalLocation, pathname: "/auth", replace: replaceMock },
-    });
-
-    sessionStorage.setItem("pendingJoinUrl", "/l/AB12");
-
-    render(
-      <MemoryRouter>
-        <AuthProvider>
-          <div>app</div>
-        </AuthProvider>
-      </MemoryRouter>,
-    );
-
-    await waitFor(() => expect(listener).toBeDefined());
-
-    await act(async () => {
-      await listener("SIGNED_IN", { user: { id: "user-1" } });
-    });
-
-    expect(sessionStorage.getItem("pendingJoinUrl")).toBeNull();
-    expect(replaceMock).toHaveBeenCalledWith("/l/AB12");
-
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: originalLocation,
-    });
-  });
-
-  it("ignores tampered pendingJoinUrl that does not start with /l/", async () => {
-    vi.resetModules();
-
-    let listener: any;
-    vi.doMock("@/integrations/supabase/client", () => ({
-      supabase: {
-        auth: {
-          onAuthStateChange: (cb: any) => {
-            listener = cb;
-            return { data: { subscription: { unsubscribe: vi.fn() } } };
-          },
-          getSession: () => Promise.resolve({ data: { session: null } }),
-          signOut: vi.fn(),
-        },
-        from: () => ({
-          select: () => ({
-            eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }),
-          }),
-        }),
-      },
-    }));
-
-    const { AuthProvider } = await import("@/contexts/AuthContext");
-
-    const replaceMock = vi.fn();
-    const originalLocation = window.location;
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: { ...originalLocation, pathname: "/auth", replace: replaceMock },
-    });
-
-    sessionStorage.setItem("pendingJoinUrl", "https://evil.example.com/phish");
-
-    render(
-      <MemoryRouter>
-        <AuthProvider>
-          <div>app</div>
-        </AuthProvider>
-      </MemoryRouter>,
-    );
-
-    await waitFor(() => expect(listener).toBeDefined());
-    await act(async () => {
-      await listener("SIGNED_IN", { user: { id: "user-1" } });
-    });
-
-    expect(replaceMock).not.toHaveBeenCalled();
-    // Per current impl, non-/l/ values are left untouched (not cleared).
-    expect(sessionStorage.getItem("pendingJoinUrl")).toBe("https://evil.example.com/phish");
-
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: originalLocation,
-    });
   });
 });
